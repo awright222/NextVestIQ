@@ -10,9 +10,8 @@ import {
   Star,
   GitCompareArrows,
   Pencil,
-  TrendingUp,
+  Trash2,
   DollarSign,
-  Eye,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import type { Deal } from '@/types';
@@ -26,6 +25,7 @@ interface DealCardProps {
   onToggleCompare: () => void;
   onToggleFavorite: () => void;
   onEdit: () => void;
+  onDelete: () => void;
 }
 
 /** Format a number as currency */
@@ -48,6 +48,7 @@ export default function DealCard({
   onToggleCompare,
   onToggleFavorite,
   onEdit,
+  onDelete,
 }: DealCardProps) {
   const router = useRouter();
   const isRE = deal.dealType === 'real-estate';
@@ -115,6 +116,13 @@ export default function DealCard({
             title="Edit deal"
           >
             <Pencil className="h-4 w-4 text-muted-foreground" />
+          </button>
+          <button
+            onClick={(e) => { e.stopPropagation(); onDelete(); }}
+            className="rounded p-1 transition hover:bg-red-50 dark:hover:bg-red-950"
+            title="Delete deal"
+          >
+            <Trash2 className="h-4 w-4 text-muted-foreground hover:text-red-500" />
           </button>
         </div>
       </div>

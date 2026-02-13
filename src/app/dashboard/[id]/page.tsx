@@ -6,7 +6,7 @@
 
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import {
   ArrowLeft,
@@ -14,10 +14,11 @@ import {
   Briefcase,
   Star,
   Pencil,
+  Trash2,
   TrendingUp,
 } from 'lucide-react';
 import { useAppSelector, useAppDispatch } from '@/hooks';
-import { toggleFavorite, addScenario, removeScenario, updateDeal } from '@/store/dealsSlice';
+import { toggleFavorite, addScenario, removeScenario, updateDeal, removeDeal } from '@/store/dealsSlice';
 import { openModal, closeModal } from '@/store/uiSlice';
 import MetricsPanel from '@/components/dashboard/MetricsPanel';
 import ScenarioPanel from '@/components/dashboard/ScenarioPanel';
@@ -37,6 +38,7 @@ export default function DealDetailPage() {
 
   const deal = useAppSelector((s) => s.deals.items.find((d) => d.id === dealId));
   const modal = useAppSelector((s) => s.ui.modal);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const isRE = deal?.dealType === 'real-estate';
 
@@ -159,6 +161,11 @@ export default function DealDetailPage() {
     dispatch(closeModal());
   }
 
+  function handleDeleteDeal() {
+    dispatch(removeDeal(currentDeal.id));
+    router.push('/dashboard');
+  }
+
   const price = isRE
     ? (currentDeal.data as RealEstateDeal).purchasePrice
     : (currentDeal.data as BusinessDeal).askingPrice;
@@ -224,6 +231,13 @@ export default function DealDetailPage() {
                 <Pencil className="h-4 w-4" />
                 Edit Deal
               </button>
+              <button
+                onClick={() => setShowDeleteConfirm(true)}
+                className="rounded-lg border border-red-200 p-2 text-red-500 transition hover:bg-red-50 dark:border-red-800 dark:hover:bg-red-950"
+                title="Delete deal"
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
             </div>
           </div>
         </div>
@@ -234,7 +248,7 @@ export default function DealDetailPage() {
         <MetricsPanel dealType={currentDeal.dealType} data={currentDeal.data} />
 
         {/* ─── Charts ──────────────────────────────── */}
-        <div className="mt-6 grid gap-6 lg:grid-cols-2">
+        <div className={`mt-6 grid gap-6 ${scenarioChartData.length > 1 ? 'lg:grid-cols-2' : ''}`}>
           <CashFlowChart data={cashFlowData} />
           {scenarioChartData.length > 1 && (
             <ScenarioComparisonChart
@@ -260,6 +274,28 @@ export default function DealDetailPage() {
             <p className="whitespace-pre-wrap text-sm text-muted-foreground">{currentDeal.notes}</p>
           </div>
         )}
+
+        {/* ─── Deal Info Footer ───────────────────── */}
+        <div className="mt-6 flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
+          <span>
+            Created {new Date(currentDeal.createdAt).toLocaleDateString('en-US', {
+              year: 'numeric', month: 'short', day: 'numeric',
+            })}
+          </span>
+          <span>·</span>
+          <span>
+            Last updated {new Date(currentDeal.updatedAt).toLocaleDateString('en-US', {
+              year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit',
+            })}
+          </span>
+          <span>·</span>
+          <span>{currentDeal.scenarios.length} scenario{currentDeal.scenarios.length !== 1 ? 's' : ''}</span>
+          <span>·</span>
+          <span>
+            Financing: {currentDeal.data.financing.loanType.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}
+            {' '}@ {currentDeal.data.financing.interestRate}% / {currentDeal.data.financing.loanTermYears}yr
+          </span>
+        </div>
       </div>
 
       {/* ─── Edit Modal ────────────────────────────── */}
@@ -273,6 +309,34 @@ export default function DealDetailPage() {
           onSave={handleSaveDeal}
           onCancel={() => dispatch(closeModal())}
         />
+      </Modal>
+
+      {/* ─── Delete Confirmation Modal ────────────── */}
+      <Modal
+        title="Delete Deal"
+        isOpen={showDeleteConfirm}
+        onClose={() => setShowDeleteConfirm(false)}
+      >
+        <div className="p-1">
+          <p className="text-sm text-muted-foreground">
+            Are you sure you want to delete <strong className="text-foreground">{currentDeal.name}</strong>?
+            This will permanently remove the deal, all scenarios, and notes. This action cannot be undone.
+          </p>
+          <div className="mt-6 flex justify-end gap-3">
+            <button
+              onClick={() => setShowDeleteConfirm(false)}
+              className="rounded-lg border border-border px-4 py-2 text-sm font-medium text-foreground transition hover:bg-secondary"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleDeleteDeal}
+              className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-red-700"
+            >
+              Delete Deal
+            </button>
+          </div>
+        </div>
       </Modal>
     </div>
   );
