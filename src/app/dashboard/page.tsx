@@ -17,11 +17,13 @@ import {
   List,
 } from 'lucide-react';
 import { useAppSelector, useAppDispatch } from '@/hooks';
-import { setDashboardTab, openModal, setSidebarOpen } from '@/store/uiSlice';
-import { toggleComparison, toggleFavorite } from '@/store/dealsSlice';
+import { setDashboardTab, openModal, closeModal, setSidebarOpen } from '@/store/uiSlice';
+import { toggleComparison, toggleFavorite, addDeal, updateDeal } from '@/store/dealsSlice';
 import DealCard from '@/components/dashboard/DealCard';
 import ComparisonTable from '@/components/dashboard/ComparisonTable';
 import FinancingSidebar from '@/components/dashboard/FinancingSidebar';
+import DealForm from '@/components/dashboard/DealForm';
+import Modal from '@/components/ui/Modal';
 import type { Deal } from '@/types';
 
 const tabs = [
@@ -37,7 +39,23 @@ export default function DashboardPage() {
   const comparisonIds = useAppSelector((s) => s.deals.comparisonIds);
   const activeTab = useAppSelector((s) => s.ui.dashboardTab);
   const sidebarOpen = useAppSelector((s) => s.ui.sidebarOpen);
+  const modal = useAppSelector((s) => s.ui.modal);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+
+  // The deal being edited (if any)
+  const editingDeal = modal.dealId
+    ? deals.find((d) => d.id === modal.dealId)
+    : undefined;
+
+  /** Save a new or updated deal to Redux */
+  function handleSaveDeal(deal: Deal) {
+    if (editingDeal) {
+      dispatch(updateDeal(deal));
+    } else {
+      dispatch(addDeal(deal));
+    }
+    dispatch(closeModal());
+  }
 
   // Filter deals by active tab
   const filteredDeals = deals.filter((deal) => {
@@ -176,6 +194,19 @@ export default function DashboardPage() {
 
       {/* ─── Financing Sidebar ────────────────── */}
       {sidebarOpen && <FinancingSidebar />}
+
+      {/* ─── Deal Form Modal ──────────────────── */}
+      <Modal
+        title={editingDeal ? `Edit: ${editingDeal.name}` : 'New Deal'}
+        isOpen={modal.type === 'deal-form'}
+        onClose={() => dispatch(closeModal())}
+      >
+        <DealForm
+          existingDeal={editingDeal}
+          onSave={handleSaveDeal}
+          onCancel={() => dispatch(closeModal())}
+        />
+      </Modal>
     </div>
   );
 }
