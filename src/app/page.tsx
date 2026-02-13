@@ -54,26 +54,6 @@ const features = [
 export default function HomePage() {
   return (
     <div className="min-h-screen bg-background">
-      {/* ─── Nav ─────────────────────────────── */}
-      <nav className="border-b border-border bg-card">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
-          <div className="flex items-center gap-2">
-            <TrendingUp className="h-7 w-7 text-primary" />
-            <span className="text-xl font-bold text-foreground">
-              NextVestIQ
-            </span>
-          </div>
-          <div className="flex items-center gap-4">
-            <Link
-              href="/dashboard"
-              className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition hover:opacity-90"
-            >
-              Go to Dashboard
-            </Link>
-          </div>
-        </div>
-      </nav>
-
       {/* ─── Hero ────────────────────────────── */}
       <section className="mx-auto max-w-4xl px-6 py-24 text-center">
         <h1 className="text-5xl font-extrabold leading-tight tracking-tight text-foreground">

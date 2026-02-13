@@ -9,7 +9,6 @@ import {
   Plus,
   BarChart3,
   GitCompareArrows,
-  TrendingUp,
   Building2,
   Briefcase,
   Star,
@@ -73,10 +72,7 @@ export default function DashboardPage() {
         {/* Header */}
         <header className="border-b border-border bg-card px-6 py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <TrendingUp className="h-6 w-6 text-primary" />
-              <h1 className="text-xl font-bold">NextVestIQ</h1>
-            </div>
+            <h2 className="text-lg font-bold text-foreground">My Deals</h2>
             <div className="flex items-center gap-3">
               <button
                 onClick={() => dispatch(setSidebarOpen(!sidebarOpen))}
