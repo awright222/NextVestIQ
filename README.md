@@ -1,36 +1,93 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# NextVestIQ
+
+Real estate and business investment analysis platform. Evaluate deals with institutional-grade metrics, scenario modeling, and side-by-side comparison.
+
+## Tech Stack
+
+- **Framework**: Next.js 14 (App Router) + TypeScript
+- **Styling**: Tailwind CSS
+- **State**: Redux Toolkit
+- **Database / Auth**: Firebase (Firestore + Auth)
+- **Charts**: Recharts
+- **Icons**: Lucide React
 
 ## Getting Started
 
-First, run the development server:
-
 ```bash
+# Install dependencies
+npm install
+
+# Copy env template and add your Firebase credentials
+cp .env.local.example .env.local
+
+# Run the development server
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) to see the app.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Project Structure
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```
+src/
+├── app/                  # Next.js App Router pages
+│   ├── api/rates/        # API route for lending rates
+│   ├── dashboard/        # Dashboard page
+│   ├── layout.tsx        # Root layout (wraps Redux Provider)
+│   └── page.tsx          # Landing page
+├── components/
+│   ├── charts/           # Recharts visualizations
+│   │   ├── CashFlowChart.tsx
+│   │   └── ScenarioComparisonChart.tsx
+│   ├── dashboard/        # Dashboard UI components
+│   │   ├── ComparisonTable.tsx
+│   │   ├── DealCard.tsx
+│   │   └── FinancingSidebar.tsx
+│   └── providers/        # Context providers
+│       └── StoreProvider.tsx
+├── hooks/                # Custom React hooks
+│   ├── index.ts
+│   └── useRedux.ts       # Typed useDispatch / useSelector
+├── lib/
+│   ├── firebase.ts       # Firebase init (Auth + Firestore)
+│   └── calculations/     # Pure calculation engines
+│       ├── business.ts   # EBITDA, SDE, ROI, Break-even
+│       ├── index.ts
+│       └── real-estate.ts # Cap Rate, CoC, IRR, DSCR, NOI
+├── store/                # Redux Toolkit
+│   ├── dealsSlice.ts     # Deals CRUD, scenarios, comparisons
+│   ├── index.ts          # Store config
+│   └── uiSlice.ts        # UI state (sidebar, modals, tabs)
+└── types/
+    └── index.ts          # All TypeScript interfaces
+```
 
-## Learn More
+## Key Features (Step 1 — Scaffolded)
 
-To learn more about Next.js, take a look at the following resources:
+- [x] Type-safe data models for real estate & business deals
+- [x] Pure calculation engines (Cap Rate, Cash-on-Cash, IRR, DSCR, EBITDA, SDE, ROI, Break-even)
+- [x] Redux Toolkit store with deals, scenarios, and UI slices
+- [x] Dashboard with deal cards, tab filtering, grid/list toggle
+- [x] Side-by-side comparison table with sortable columns
+- [x] Financing sidebar with auto-populated lending rates
+- [x] Cash flow projection chart (Recharts)
+- [x] Scenario comparison bar chart
+- [x] API route for lending rates (`/api/rates`)
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Next Steps
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- [ ] Deal input form (create/edit real estate & business deals)
+- [ ] Scenario builder / what-if panel
+- [ ] Firebase Auth integration (login/signup)
+- [ ] Firestore persistence (save/load deals)
+- [ ] Live lending rate fetching (FRED API, scraping)
+- [ ] Alert system for investment criteria
+- [ ] Full chart integration on deal detail page
 
-## Deploy on Vercel
+## Deploy
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```bash
+npm run build   # Production build
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Deploy to [Vercel](https://vercel.com) for the easiest Next.js hosting.
