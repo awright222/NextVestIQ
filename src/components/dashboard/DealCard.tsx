@@ -12,7 +12,9 @@ import {
   Pencil,
   TrendingUp,
   DollarSign,
+  Eye,
 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import type { Deal } from '@/types';
 import { calcRealEstateMetrics } from '@/lib/calculations/real-estate';
 import { calcBusinessMetrics } from '@/lib/calculations/business';
@@ -47,6 +49,7 @@ export default function DealCard({
   onToggleFavorite,
   onEdit,
 }: DealCardProps) {
+  const router = useRouter();
   const isRE = deal.dealType === 'real-estate';
 
   // Calculate metrics on the fly
@@ -60,7 +63,8 @@ export default function DealCard({
 
   return (
     <div
-      className={`group relative rounded-xl border bg-card p-5 transition hover:shadow-md ${
+      onClick={() => router.push(`/dashboard/${deal.id}`)}
+      className={`group relative cursor-pointer rounded-xl border bg-card p-5 transition hover:shadow-md ${
         isComparing ? 'border-primary ring-2 ring-primary/20' : 'border-border'
       }`}
     >
@@ -82,7 +86,7 @@ export default function DealCard({
         </span>
         <div className="flex items-center gap-1">
           <button
-            onClick={onToggleFavorite}
+            onClick={(e) => { e.stopPropagation(); onToggleFavorite(); }}
             className="rounded p-1 transition hover:bg-secondary"
             title="Toggle favorite"
           >
@@ -95,7 +99,7 @@ export default function DealCard({
             />
           </button>
           <button
-            onClick={onToggleCompare}
+            onClick={(e) => { e.stopPropagation(); onToggleCompare(); }}
             className="rounded p-1 transition hover:bg-secondary"
             title="Add to comparison"
           >
@@ -106,7 +110,7 @@ export default function DealCard({
             />
           </button>
           <button
-            onClick={onEdit}
+            onClick={(e) => { e.stopPropagation(); onEdit(); }}
             className="rounded p-1 transition hover:bg-secondary"
             title="Edit deal"
           >
