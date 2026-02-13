@@ -1,13 +1,18 @@
 // ============================================
-// Dashboard Layout — Protected by AuthGuard
+// Dashboard Layout — Protected by AuthGuard + Firestore sync
 // ============================================
 
 import AuthGuard from '@/components/auth/AuthGuard';
+import FirestoreSyncProvider from '@/components/providers/FirestoreSyncProvider';
 
 export default function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  return <AuthGuard>{children}</AuthGuard>;
+  return (
+    <AuthGuard>
+      <FirestoreSyncProvider>{children}</FirestoreSyncProvider>
+    </AuthGuard>
+  );
 }

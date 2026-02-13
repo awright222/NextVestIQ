@@ -9,6 +9,7 @@
 
 import { useState, useCallback } from 'react';
 import { Building2, Briefcase } from 'lucide-react';
+import { useAuth } from '@/components/providers/AuthProvider';
 import FormField from '@/components/ui/FormField';
 import SelectField from '@/components/ui/SelectField';
 import SectionHeader from '@/components/ui/SectionHeader';
@@ -99,6 +100,8 @@ interface DealFormProps {
 // ─── Component ───────────────────────────────────────────────
 
 export default function DealForm({ existingDeal, onSave, onCancel }: DealFormProps) {
+  const { user } = useAuth();
+
   // Deal metadata
   const [name, setName] = useState(existingDeal?.name ?? '');
   const [dealType, setDealType] = useState<DealType>(existingDeal?.dealType ?? 'real-estate');
@@ -199,7 +202,7 @@ export default function DealForm({ existingDeal, onSave, onCancel }: DealFormPro
     const now = new Date().toISOString();
     const deal: Deal = {
       id: existingDeal?.id ?? crypto.randomUUID(),
-      userId: existingDeal?.userId ?? '', // set by auth layer
+      userId: existingDeal?.userId ?? user?.uid ?? '',
       name: name || (isRE ? 'Untitled Property' : 'Untitled Business'),
       dealType,
       data: isRE ? reData : bizData,
