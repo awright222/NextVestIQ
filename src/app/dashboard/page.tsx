@@ -16,7 +16,6 @@ import {
   LayoutGrid,
   List,
   Search,
-  Loader2,
   ArrowUpDown,
   Bell,
   PieChart,
@@ -286,11 +285,45 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Loading State */}
+          {/* Loading State — skeleton cards */}
           {isLoading ? (
-            <div className="flex flex-col items-center justify-center py-20">
-              <Loader2 className="mb-3 h-8 w-8 animate-spin text-primary" />
-              <p className="text-sm text-muted-foreground">Loading your deals...</p>
+            <div className={viewMode === 'grid' ? 'grid gap-4 sm:grid-cols-2 lg:grid-cols-3' : 'space-y-3'}>
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div
+                  key={i}
+                  className="animate-pulse rounded-xl border border-border bg-card p-5"
+                >
+                  {/* Header row */}
+                  <div className="flex items-center gap-3">
+                    <div className="h-9 w-9 rounded-lg bg-muted" />
+                    <div className="flex-1 space-y-2">
+                      <div className="h-4 w-3/4 rounded bg-muted" />
+                      <div className="h-3 w-1/2 rounded bg-muted" />
+                    </div>
+                  </div>
+                  {/* Metric rows */}
+                  <div className="mt-5 space-y-3">
+                    <div className="flex justify-between">
+                      <div className="h-3 w-20 rounded bg-muted" />
+                      <div className="h-3 w-16 rounded bg-muted" />
+                    </div>
+                    <div className="flex justify-between">
+                      <div className="h-3 w-24 rounded bg-muted" />
+                      <div className="h-3 w-12 rounded bg-muted" />
+                    </div>
+                    <div className="flex justify-between">
+                      <div className="h-3 w-16 rounded bg-muted" />
+                      <div className="h-3 w-14 rounded bg-muted" />
+                    </div>
+                  </div>
+                  {/* Footer row */}
+                  <div className="mt-5 flex items-center gap-2 border-t border-border pt-4">
+                    <div className="h-6 w-14 rounded bg-muted" />
+                    <div className="h-6 w-14 rounded bg-muted" />
+                    <div className="ml-auto h-6 w-6 rounded bg-muted" />
+                  </div>
+                </div>
+              ))}
             </div>
           ) : activeTab === 'portfolio' ? (
             deals.length > 0 ? (
