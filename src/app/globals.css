@@ -88,3 +88,11 @@ html {
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
 }
+
+/* Invert logo in light mode so it's visible on light backgrounds */
+.logo-adaptive {
+  filter: invert(1);
+}
+.dark .logo-adaptive {
+  filter: invert(0);
+}

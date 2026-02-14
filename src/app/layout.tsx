@@ -20,10 +20,10 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "DealForge — Forge Better Investments",
   description:
-    "Institutional-grade underwriting and scenario modeling for real estate and business acquisitions. Built for Serious Investors.",
+    "Professional underwriting software for acquisition entrepreneurs.",
   icons: {
-    icon: "/img/Favicon.io.png",
-    apple: "/img/Favicon.io.png",
+    icon: "/img/favicon.io.png",
+    apple: "/img/favicon.io.png",
   },
 };
 

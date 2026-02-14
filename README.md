@@ -1,6 +1,6 @@
 # DealForge
 
-Forge Better Investments. Institutional-grade underwriting and scenario modeling for real estate and business acquisitions. Built for Serious Investors.
+Forge Better Investments. Professional underwriting software for acquisition entrepreneurs.
 
 ## Tech Stack
 

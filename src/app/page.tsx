@@ -2,6 +2,7 @@
 // Landing Page — DealForge
 // ============================================
 
+import Image from 'next/image';
 import Link from 'next/link';
 import {
   BarChart3,
@@ -56,14 +57,21 @@ export default function HomePage() {
     <div className="min-h-screen bg-background">
       {/* ─── Hero ────────────────────────────── */}
       <section className="mx-auto max-w-4xl px-4 py-12 text-center sm:px-6 sm:py-24">
+        <Image
+          src="/img/Logo.png"
+          alt="DealForge"
+          width={160}
+          height={160}
+          className="mx-auto mb-4 logo-adaptive"
+          priority
+        />
         <h1 className="text-3xl font-extrabold leading-tight tracking-tight text-foreground sm:text-5xl">
           Forge Better
           <br />
           <span className="text-primary">Investments</span>
         </h1>
         <p className="mx-auto mt-6 max-w-2xl text-lg text-muted-foreground">
-          Institutional-grade underwriting and scenario modeling for real estate
-          and business acquisitions. Built for Serious Investors.
+          Professional underwriting software for acquisition entrepreneurs.
         </p>
         <div className="mt-10 flex items-center justify-center gap-4">
           <Link
