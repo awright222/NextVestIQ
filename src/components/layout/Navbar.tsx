@@ -6,8 +6,9 @@
 
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
-import { TrendingUp, LogOut, User, ChevronDown, LayoutDashboard } from 'lucide-react';
+import { LogOut, User, ChevronDown, LayoutDashboard } from 'lucide-react';
 import { useAuth } from '@/components/providers/AuthProvider';
 
 export default function Navbar() {
@@ -50,7 +51,7 @@ export default function Navbar() {
       <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-3">
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2">
-          <TrendingUp className="h-6 w-6 text-primary" />
+          <Image src="/img/Logo.png" alt="NextVestIQ" width={32} height={32} className="h-8 w-8" />
           <span className="text-lg font-bold text-foreground">NextVestIQ</span>
         </Link>
 

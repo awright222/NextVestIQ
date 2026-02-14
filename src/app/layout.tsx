@@ -20,6 +20,10 @@ export const metadata: Metadata = {
   title: "NextVestIQ — Investment Analysis Platform",
   description:
     "Analyze real estate and business deals with automated metrics, scenario modeling, and side-by-side comparisons.",
+  icons: {
+    icon: "/img/Favicon.io.png",
+    apple: "/img/Favicon.io.png",
+  },
 };
 
 export default function RootLayout({
