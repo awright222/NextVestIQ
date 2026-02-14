@@ -6,7 +6,8 @@
 
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 
 interface BreakdownDrawerProps {
@@ -29,6 +30,10 @@ export default function BreakdownDrawer({
   totalLabel,
 }: BreakdownDrawerProps) {
   const drawerRef = useRef<HTMLDivElement>(null);
+  const [mounted, setMounted] = useState(false);
+
+  // Wait for client-side mount so createPortal has a target
+  useEffect(() => setMounted(true), []);
 
   // Close on Escape
   useEffect(() => {
@@ -52,7 +57,7 @@ export default function BreakdownDrawer({
     };
   }, [isOpen]);
 
-  if (!isOpen) return null;
+  if (!isOpen || !mounted) return null;
 
   const fmt = (n: number) =>
     new Intl.NumberFormat('en-US', {
@@ -61,7 +66,7 @@ export default function BreakdownDrawer({
       maximumFractionDigits: 0,
     }).format(n);
 
-  return (
+  return createPortal(
     <>
       {/* Backdrop */}
       <div
@@ -109,6 +114,7 @@ export default function BreakdownDrawer({
           </div>
         )}
       </div>
-    </>
+    </>,
+    document.body,
   );
 }
