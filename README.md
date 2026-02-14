@@ -85,7 +85,8 @@ src/
 │   ├── providers/
 │   │   ├── AuthProvider.tsx
 │   │   ├── FirestoreSyncProvider.tsx
-│   │   └── StoreProvider.tsx
+│   │   ├── StoreProvider.tsx
+│   │   └── ThemeProvider.tsx         # Dark mode context + toggle
 │   └── ui/
 │       ├── BreakdownDrawer.tsx     # Slide-out detail panel
 │       ├── FormField.tsx
@@ -94,6 +95,7 @@ src/
 │       ├── SelectField.tsx
 │       └── Toast.tsx
 ├── hooks/
+│   ├── useChartColors.ts       # Theme-aware chart palette
 │   ├── useFirestoreSync.ts
 │   └── useRedux.ts
 ├── lib/
@@ -103,6 +105,7 @@ src/
 │   ├── exportPdf.ts
 │   ├── firebase.ts
 │   ├── firestore.ts           # Firestore CRUD (deals + criteria)
+│   ├── templates.ts           # 8 pre-filled deal starter templates
 │   └── calculations/
 │       ├── business.ts
 │       ├── hybrid.ts
@@ -174,6 +177,24 @@ Optional drill-down schedules that auto-calculate parent totals — keeps the fo
 - Firebase Auth (email/password + Google)
 - Firestore auto-sync for deals and alert criteria
 - Protected routes
+
+### Dark Mode
+- System / Light / Dark toggle in navbar (Sun/Moon icon)
+- Class-based `.dark` theming with CSS variables — no flash of wrong theme
+- Theme-aware charts (grid lines, ticks, tooltips adapt automatically)
+- Persists preference to localStorage
+
+### Deal Templates
+- 8 pre-filled starter templates with realistic financials
+- **Real Estate** — Single-Family Rental, Duplex, 8-Unit Apartment
+- **Business** — Restaurant, E-Commerce Store, Service Company (HVAC)
+- **Hybrid** — Laundromat, Car Wash
+- One-click populate: fills deal name, type, and all financial fields
+- Shown in DealForm for new deals only — pick a template or start from scratch
+
+### Empty States
+- Welcoming first-time dashboard with feature icons and CTA
+- Separate "no search results" state with clear messaging
 
 ## Scripts
 

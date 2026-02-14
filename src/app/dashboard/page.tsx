@@ -247,26 +247,50 @@ export default function DashboardPage() {
               <p className="text-sm text-muted-foreground">Loading your deals...</p>
             </div>
           ) : filteredDeals.length === 0 ? (
-            <div className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-border py-20 text-center">
-              <Building2 className="mb-4 h-12 w-12 text-muted-foreground" />
-              <h3 className="text-lg font-semibold text-foreground">
-                {searchQuery ? 'No matching deals' : 'No deals yet'}
-              </h3>
-              <p className="mt-1 text-sm text-muted-foreground">
-                {searchQuery
-                  ? 'Try a different search term or clear the filter.'
-                  : 'Add your first property or business deal to get started.'}
-              </p>
-              {!searchQuery && (
-                <button
-                  onClick={() => dispatch(openModal({ type: 'deal-form' }))}
-                  className="mt-4 flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
-                >
-                  <Plus className="h-4 w-4" />
-                  Add Deal
-                </button>
-              )}
-            </div>
+            searchQuery ? (
+              <div className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-border py-20 text-center">
+                <Search className="mb-4 h-12 w-12 text-muted-foreground" />
+                <h3 className="text-lg font-semibold text-foreground">
+                  No matching deals
+                </h3>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Try a different search term or clear the filter.
+                </p>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-border py-16 text-center">
+                <div className="mb-6 flex items-center gap-3">
+                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-100 text-3xl dark:bg-blue-900/40">
+                    🏠
+                  </div>
+                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-violet-100 text-3xl dark:bg-violet-900/40">
+                    🏢
+                  </div>
+                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-100 text-3xl dark:bg-emerald-900/40">
+                    🧺
+                  </div>
+                </div>
+                <h3 className="text-xl font-bold text-foreground">
+                  Analyze Your First Deal
+                </h3>
+                <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
+                  Add a real estate property, business acquisition, or hybrid deal to see
+                  instant metrics, investment scoring, charts, and AI-powered analysis.
+                </p>
+                <div className="mt-6 flex flex-col items-center gap-3 sm:flex-row">
+                  <button
+                    onClick={() => dispatch(openModal({ type: 'deal-form' }))}
+                    className="flex items-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground transition hover:opacity-90"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Create New Deal
+                  </button>
+                </div>
+                <p className="mt-4 text-xs text-muted-foreground">
+                  Tip: Use a pre-filled template to explore the platform instantly
+                </p>
+              </div>
+            )
           ) : (
             <div
               className={

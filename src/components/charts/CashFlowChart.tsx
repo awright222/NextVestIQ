@@ -4,6 +4,7 @@
 
 'use client';
 
+import { useMemo } from 'react';
 import {
   AreaChart,
   Area,
@@ -14,6 +15,7 @@ import {
   ResponsiveContainer,
   Legend,
 } from 'recharts';
+import { useChartColors } from '@/hooks';
 
 interface CashFlowChartProps {
   data: {
@@ -33,6 +35,8 @@ function fmtAxis(value: number): string {
 }
 
 export default function CashFlowChart({ data }: CashFlowChartProps) {
+  const { grid, tick, tooltipBg, tooltipBorder } = useChartColors();
+
   return (
     <div className="rounded-xl border border-border bg-card p-5">
       <h3 className="mb-4 text-sm font-semibold text-card-foreground">
@@ -50,16 +54,17 @@ export default function CashFlowChart({ data }: CashFlowChartProps) {
               <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
             </linearGradient>
           </defs>
-          <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+          <CartesianGrid strokeDasharray="3 3" stroke={grid} />
           <XAxis
             dataKey="year"
-            tick={{ fontSize: 12 }}
+            tick={{ fontSize: 12, fill: tick }}
             tickFormatter={(v) => `Y${v}`}
           />
-          <YAxis tick={{ fontSize: 12 }} tickFormatter={fmtAxis} />
+          <YAxis tick={{ fontSize: 12, fill: tick }} tickFormatter={fmtAxis} />
           <Tooltip
             formatter={(value) => fmtAxis(Number(value))}
             labelFormatter={(label) => `Year ${label}`}
+            contentStyle={{ backgroundColor: tooltipBg, borderColor: tooltipBorder, borderRadius: 8 }}
           />
           <Legend />
           <Area

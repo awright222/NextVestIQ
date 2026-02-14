@@ -8,11 +8,13 @@ import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
-import { LogOut, User, ChevronDown, LayoutDashboard } from 'lucide-react';
+import { LogOut, User, ChevronDown, LayoutDashboard, Sun, Moon } from 'lucide-react';
 import { useAuth } from '@/components/providers/AuthProvider';
+import { useTheme } from '@/components/providers/ThemeProvider';
 
 export default function Navbar() {
   const { user, logOut } = useAuth();
+  const { resolved, toggle } = useTheme();
   const pathname = usePathname();
   const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -57,6 +59,15 @@ export default function Navbar() {
 
         {/* Right side */}
         <div className="flex items-center gap-3">
+          {/* Theme toggle */}
+          <button
+            onClick={toggle}
+            className="rounded-lg p-2 text-muted-foreground transition hover:bg-secondary hover:text-foreground"
+            aria-label={resolved === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+          >
+            {resolved === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+          </button>
+
           {user ? (
             <>
               {/* Dashboard link (if not already there) */}

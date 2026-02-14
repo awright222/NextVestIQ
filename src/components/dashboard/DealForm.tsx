@@ -30,6 +30,7 @@ import type {
   UtilityItem,
 } from '@/types';
 import BreakdownDrawer from '@/components/ui/BreakdownDrawer';
+import { getTemplatesForType, type DealTemplate } from '@/lib/templates';
 import PayrollBreakdown, {
   calcPayrollTotal,
   defaultPayrollBreakdown,
@@ -201,6 +202,24 @@ export default function DealForm({ existingDeal, onSave, onCancel }: DealFormPro
   // Which breakdown drawer is open
   type DrawerKey = 'payroll' | 'assets' | 'interest' | 'leases' | 'utilities' | null;
   const [openDrawer, setOpenDrawer] = useState<DrawerKey>(null);
+
+  /** Apply a template — fills all fields for the selected deal type */
+  function applyTemplate(tpl: DealTemplate) {
+    setName(tpl.name);
+    setTags(tpl.tags.join(', '));
+    if (tpl.dealType !== dealType) setDealType(tpl.dealType);
+    switch (tpl.dealType) {
+      case 'real-estate':
+        setReData(tpl.data as RealEstateDeal);
+        break;
+      case 'business':
+        setBizData(tpl.data as BusinessDeal);
+        break;
+      case 'hybrid':
+        setHybridData(tpl.data as HybridDeal);
+        break;
+    }
+  }
 
   const toggleSection = (key: keyof typeof sections) =>
     setSections((s) => ({ ...s, [key]: !s[key] }));
@@ -524,6 +543,31 @@ export default function DealForm({ existingDeal, onSave, onCancel }: DealFormPro
           </p>
         )}
       </div>
+
+      {/* ─── Template Picker (new deals only) ─── */}
+      {!existingDeal && (
+        <div>
+          <p className="mb-2 text-xs font-medium text-muted-foreground">
+            Start from a template or enter your own numbers
+          </p>
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+            {getTemplatesForType(dealType).map((tpl) => (
+              <button
+                key={tpl.id}
+                type="button"
+                onClick={() => applyTemplate(tpl)}
+                className="flex items-center gap-2 rounded-lg border border-border px-3 py-2.5 text-left text-sm transition hover:border-primary hover:bg-primary/5"
+              >
+                <span className="text-lg">{tpl.icon}</span>
+                <div className="min-w-0">
+                  <p className="truncate font-medium text-foreground">{tpl.name}</p>
+                  <p className="truncate text-[11px] text-muted-foreground">{tpl.description}</p>
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* ─── Deal Name ────────────────────────── */}
       <FormField

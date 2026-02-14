@@ -14,6 +14,7 @@ import {
   ResponsiveContainer,
   Legend,
 } from 'recharts';
+import { useChartColors } from '@/hooks';
 
 interface ScenarioComparisonChartProps {
   data: {
@@ -36,6 +37,8 @@ export default function ScenarioComparisonChart({
   data,
   thirdMetricLabel = 'Cap Rate / SDE',
 }: ScenarioComparisonChartProps) {
+  const { grid, tick, tooltipBg, tooltipBorder } = useChartColors();
+
   return (
     <div className="rounded-xl border border-border bg-card p-5">
       <h3 className="mb-4 text-sm font-semibold text-card-foreground">
@@ -43,10 +46,13 @@ export default function ScenarioComparisonChart({
       </h3>
       <ResponsiveContainer width="100%" height={300}>
         <BarChart data={data} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-          <XAxis dataKey="name" tick={{ fontSize: 12 }} />
-          <YAxis tick={{ fontSize: 12 }} tickFormatter={fmtAxis} />
-          <Tooltip formatter={(value) => fmtAxis(Number(value))} />
+          <CartesianGrid strokeDasharray="3 3" stroke={grid} />
+          <XAxis dataKey="name" tick={{ fontSize: 12, fill: tick }} />
+          <YAxis tick={{ fontSize: 12, fill: tick }} tickFormatter={fmtAxis} />
+          <Tooltip
+            formatter={(value) => fmtAxis(Number(value))}
+            contentStyle={{ backgroundColor: tooltipBg, borderColor: tooltipBorder, borderRadius: 8 }}
+          />
           <Legend />
           <Bar dataKey="cashFlow" name="Cash Flow" fill="#2563eb" radius={[4, 4, 0, 0]} />
           <Bar dataKey="roi" name="ROI %" fill="#10b981" radius={[4, 4, 0, 0]} />
