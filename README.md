@@ -1,6 +1,6 @@
 # NextVestIQ
 
-Real estate and business investment analysis platform. Evaluate deals with institutional-grade metrics, AI-powered deal analysis, detailed financial breakdowns, scenario modeling, and side-by-side comparison.
+Real estate and business investment analysis platform. Evaluate deals with institutional-grade metrics, investment scoring, sensitivity analysis, AI-powered deal analysis, detailed financial breakdowns, scenario modeling, and side-by-side comparison.
 
 ## Tech Stack
 
@@ -78,8 +78,9 @@ src/
 │   │   ├── DealCard.tsx
 │   │   ├── DealForm.tsx
 │   │   ├── FinancingSidebar.tsx
-│   │   ├── MetricsPanel.tsx
-│   │   └── ScenarioPanel.tsx
+│   │   ├── MetricsPanel.tsx         # Includes score ring gauge
+│   │   ├── ScenarioPanel.tsx
+│   │   └── SensitivityGrid.tsx      # Interactive what-if grid
 │   ├── layout/Navbar.tsx
 │   ├── providers/
 │   │   ├── AuthProvider.tsx
@@ -106,7 +107,9 @@ src/
 │       ├── business.ts
 │       ├── hybrid.ts
 │       ├── real-estate.ts
-│       └── __tests__/         # Unit tests
+│       ├── score.ts           # 0-100 investment score engine
+│       ├── sensitivity.ts     # Single-variable sensitivity grid
+│       └── __tests__/         # 146 unit tests
 ├── store/
 │   ├── criteriaSlice.ts
 │   ├── dealsSlice.ts
@@ -135,6 +138,22 @@ Optional drill-down schedules that auto-calculate parent totals — keeps the fo
 - **Interest** — Loan-by-loan debt/interest schedule with lender and balance detail
 - **Leases** — Per-location lease agreements with dates, escalation, NNN/CAM, and term warnings
 - **Utilities** — Per-location utility costs by category (electric, gas, water, trash, internet)
+
+### Investment Score (0–100)
+- Weighted composite score across deal-type-specific metrics
+- **Real Estate** — Cap Rate (25%), Cash-on-Cash (20%), DSCR (20%), IRR (15%), Cash Flow (10%), Expense Ratio (10%)
+- **Business** — SDE Multiple (25%), ROI (20%), SDE Margin (20%), Cash Flow (20%), Revenue Multiple (15%)
+- **Hybrid** — 7 components spanning both RE and business metrics
+- Risk flag penalties deduct up to 25 points (negative cash flow, high vacancy, low DSCR, etc.)
+- Labels: Strong Buy (80+), Good Deal (65+), Fair (50+), Below Average (35+), Weak (<35)
+- Displayed as SVG ring gauge in MetricsPanel, colored badge on DealCard, and in PDF exports
+
+### Sensitivity Analysis
+- Single-variable grid: vary one input ±4 steps around base case
+- 6 input variables per deal type (vacancy, interest rate, purchase price, etc.)
+- 6 output metrics per row — see how Cap Rate, Cash-on-Cash, DSCR, etc. shift
+- Base case row highlighted; green/red color coding shows direction of change
+- Interactive variable selector dropdown
 
 ### What-If Scenarios
 - Adjust any variable and see real-time metric impact

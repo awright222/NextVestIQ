@@ -14,12 +14,14 @@ import {
   Trash2,
   DollarSign,
   Bell,
+  TrendingUp,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import type { Deal, InvestmentCriteria } from '@/types';
 import { calcRealEstateMetrics } from '@/lib/calculations/real-estate';
 import { calcBusinessMetrics } from '@/lib/calculations/business';
 import { calcHybridMetrics } from '@/lib/calculations/hybrid';
+import { calcInvestmentScore } from '@/lib/calculations/score';
 import { getMatchingCriteria } from '@/lib/alerts';
 import type { RealEstateDeal, BusinessDeal, HybridDeal } from '@/types';
 
@@ -75,6 +77,9 @@ export default function DealCard({
 
   // Check alert matches
   const matchingAlerts = criteria ? getMatchingCriteria(deal, criteria) : [];
+
+  // Investment score
+  const score = calcInvestmentScore(deal);
 
   return (
     <div
@@ -153,6 +158,28 @@ export default function DealCard({
         <DollarSign className="h-4 w-4" />
         {fmt(price).replace('$', '')}
       </p>
+
+      {/* Investment Score */}
+      <div className="mt-2 flex items-center gap-2">
+        <span
+          className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-bold ${
+            score.total >= 80
+              ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300'
+              : score.total >= 65
+              ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300'
+              : score.total >= 50
+              ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300'
+              : score.total >= 35
+              ? 'bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300'
+              : 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300'
+          }`}
+          title={score.summary}
+        >
+          <TrendingUp className="h-3 w-3" />
+          {score.total}/100
+        </span>
+        <span className={`text-xs font-medium ${score.color}`}>{score.label}</span>
+      </div>
 
       {/* Key metrics */}
       <div className="mt-4 grid grid-cols-2 gap-3">

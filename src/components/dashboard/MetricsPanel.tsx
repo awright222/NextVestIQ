@@ -17,6 +17,7 @@ import type { RealEstateDeal, BusinessDeal, HybridDeal, RealEstateMetrics, Busin
 import { calcRealEstateMetrics } from '@/lib/calculations/real-estate';
 import { calcBusinessMetrics } from '@/lib/calculations/business';
 import { calcHybridMetrics } from '@/lib/calculations/hybrid';
+import { calcScoreFromMetrics, type InvestmentScore } from '@/lib/calculations/score';
 
 interface MetricsPanelProps {
   dealType: 'real-estate' | 'business' | 'hybrid';
@@ -72,13 +73,17 @@ export default function MetricsPanel({ dealType, data, baseMetrics }: MetricsPan
   if (dealType === 'real-estate') {
     const m = calcRealEstateMetrics(data as RealEstateDeal);
     const b = baseMetrics as RealEstateMetrics | undefined;
+    const score = calcScoreFromMetrics(dealType, data, m);
 
     return (
       <div className="rounded-xl border border-border bg-card p-5">
-        <h3 className="mb-4 flex items-center gap-2 text-sm font-semibold text-card-foreground">
-          <BarChart3 className="h-4 w-4 text-primary" />
-          Key Metrics
-        </h3>
+        <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <h3 className="flex items-center gap-2 text-sm font-semibold text-card-foreground">
+            <BarChart3 className="h-4 w-4 text-primary" />
+            Key Metrics
+          </h3>
+          <ScoreRing score={score} />
+        </div>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
           <Metric icon={<Percent className="h-3.5 w-3.5" />} label="Cap Rate" value={pct(m.capRate)}>
             <DiffBadge current={m.capRate} base={b?.capRate} />
@@ -114,13 +119,17 @@ export default function MetricsPanel({ dealType, data, baseMetrics }: MetricsPan
   if (dealType === 'hybrid') {
     const m = calcHybridMetrics(data as HybridDeal);
     const b = baseMetrics as HybridMetrics | undefined;
+    const score = calcScoreFromMetrics(dealType, data, m);
 
     return (
       <div className="rounded-xl border border-border bg-card p-5">
-        <h3 className="mb-4 flex items-center gap-2 text-sm font-semibold text-card-foreground">
-          <BarChart3 className="h-4 w-4 text-primary" />
-          Key Metrics
-        </h3>
+        <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <h3 className="flex items-center gap-2 text-sm font-semibold text-card-foreground">
+            <BarChart3 className="h-4 w-4 text-primary" />
+            Key Metrics
+          </h3>
+          <ScoreRing score={score} />
+        </div>
         {/* Property + Business sub-headers */}
         <p className="mb-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Property</p>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 mb-4">
@@ -172,13 +181,17 @@ export default function MetricsPanel({ dealType, data, baseMetrics }: MetricsPan
   // Business
   const m = calcBusinessMetrics(data as BusinessDeal);
   const b = baseMetrics as BusinessMetrics | undefined;
+  const score = calcScoreFromMetrics(dealType, data, m);
 
   return (
     <div className="rounded-xl border border-border bg-card p-5">
-      <h3 className="mb-4 flex items-center gap-2 text-sm font-semibold text-card-foreground">
-        <BarChart3 className="h-4 w-4 text-primary" />
-        Key Metrics
-      </h3>
+      <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <h3 className="flex items-center gap-2 text-sm font-semibold text-card-foreground">
+          <BarChart3 className="h-4 w-4 text-primary" />
+          Key Metrics
+        </h3>
+        <ScoreRing score={score} />
+      </div>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
         <Metric icon={<DollarSign className="h-3.5 w-3.5" />} label="SDE" value={fmt(m.sde)}>
           <DiffBadge current={m.sde} base={b?.sde} />
@@ -199,6 +212,64 @@ export default function MetricsPanel({ dealType, data, baseMetrics }: MetricsPan
         <Metric label="SDE Multiple" value={`${ratio(m.sdeMultiple)}x`} />
         <Metric icon={<DollarSign className="h-3.5 w-3.5" />} label="Monthly Debt Service" value={fmt(m.monthlyDebtService)} />
         <Metric icon={<DollarSign className="h-3.5 w-3.5" />} label="Cash Invested" value={fmt(m.totalCashInvested)} />
+      </div>
+    </div>
+  );
+}
+
+function ScoreRing({ score }: { score: InvestmentScore }) {
+  // SVG ring gauge
+  const size = 64;
+  const stroke = 5;
+  const radius = (size - stroke) / 2;
+  const circumference = 2 * Math.PI * radius;
+  const progress = (score.total / 100) * circumference;
+
+  const ringColor =
+    score.total >= 80
+      ? 'stroke-green-500'
+      : score.total >= 65
+      ? 'stroke-emerald-500'
+      : score.total >= 50
+      ? 'stroke-yellow-500'
+      : score.total >= 35
+      ? 'stroke-orange-500'
+      : 'stroke-red-500';
+
+  return (
+    <div className="flex items-center gap-3" title={score.summary}>
+      <div className="relative">
+        <svg width={size} height={size} className="-rotate-90">
+          <circle
+            cx={size / 2}
+            cy={size / 2}
+            r={radius}
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={stroke}
+            className="text-secondary"
+          />
+          <circle
+            cx={size / 2}
+            cy={size / 2}
+            r={radius}
+            fill="none"
+            strokeWidth={stroke}
+            strokeLinecap="round"
+            strokeDasharray={circumference}
+            strokeDashoffset={circumference - progress}
+            className={ringColor}
+          />
+        </svg>
+        <span className="absolute inset-0 flex items-center justify-center text-sm font-bold text-card-foreground">
+          {score.total}
+        </span>
+      </div>
+      <div>
+        <p className={`text-sm font-semibold ${score.color}`}>{score.label}</p>
+        <p className="max-w-[200px] text-[11px] leading-tight text-muted-foreground">
+          {score.summary}
+        </p>
       </div>
     </div>
   );

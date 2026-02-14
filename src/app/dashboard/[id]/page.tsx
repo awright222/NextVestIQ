@@ -29,6 +29,7 @@ import ScenarioComparisonChart from '@/components/charts/ScenarioComparisonChart
 import DealForm from '@/components/dashboard/DealForm';
 import ExpenseBreakdownChart from '@/components/charts/ExpenseBreakdownChart';
 import DealAnalysisPanel from '@/components/dashboard/DealAnalysisPanel';
+import SensitivityGrid from '@/components/dashboard/SensitivityGrid';
 import Modal from '@/components/ui/Modal';
 import type { Deal, Scenario, RealEstateDeal, BusinessDeal, HybridDeal } from '@/types';
 import { calcRealEstateMetrics, projectCashFlows } from '@/lib/calculations/real-estate';
@@ -301,6 +302,11 @@ export default function DealDetailPage() {
         {/* ─── Expense Breakdown ───────────────────── */}
         <div className="mt-6 lg:w-1/2">
           <ExpenseBreakdownChart dealType={currentDeal.dealType} data={currentDeal.data} />
+        </div>
+
+        {/* ─── Sensitivity Analysis ───────────────── */}
+        <div className="mt-6">
+          <SensitivityGrid deal={currentDeal} />
         </div>
 
         {/* ─── Deal Analysis ──────────────────────── */}

@@ -13,6 +13,7 @@ import type { Deal, RealEstateDeal, BusinessDeal, HybridDeal } from '@/types';
 import { calcRealEstateMetrics, projectCashFlows } from '@/lib/calculations/real-estate';
 import { calcBusinessMetrics, projectBusinessCashFlows } from '@/lib/calculations/business';
 import { calcHybridMetrics, projectHybridCashFlows } from '@/lib/calculations/hybrid';
+import { calcInvestmentScore } from '@/lib/calculations/score';
 
 const fmt = (n: number) =>
   new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(n);
@@ -92,6 +93,19 @@ export function exportDealPDF(deal: Deal) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   y = (doc as any).lastAutoTable?.finalY ?? y + 40;
   y += 6;
+
+  // ─── Investment Score ──────────────────────────────
+
+  const score = calcInvestmentScore(deal);
+
+  doc.setFontSize(12);
+  doc.setFont('helvetica', 'bold');
+  doc.text(`Investment Score: ${score.total} / 100 — ${score.label}`, 14, y);
+  y += 5;
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'normal');
+  doc.text(score.summary, 14, y);
+  y += 8;
 
   // ─── Key Metrics ───────────────────────────────────
 
