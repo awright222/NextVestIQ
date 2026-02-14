@@ -13,6 +13,8 @@ import {
   deleteDoc,
   query,
   orderBy,
+  type QuerySnapshot,
+  type DocumentData,
 } from 'firebase/firestore';
 import { db } from './firebase';
 import type { Deal, InvestmentCriteria } from '@/types';
@@ -50,8 +52,15 @@ function stripUndefined<T>(obj: T): T {
 
 /** Fetch all deals for a user, ordered by most recently updated */
 export async function fetchDeals(userId: string): Promise<Deal[]> {
-  const q = query(userSubcollection(userId, 'deals'), orderBy('updatedAt', 'desc'));
-  const snapshot = await getDocs(q);
+  let snapshot: QuerySnapshot<DocumentData, DocumentData>;
+  try {
+    // Try ordered query first (requires index)
+    const q = query(userSubcollection(userId, 'deals'), orderBy('updatedAt', 'desc'));
+    snapshot = await getDocs(q);
+  } catch {
+    // Fall back to unordered if index doesn't exist
+    snapshot = await getDocs(userSubcollection(userId, 'deals'));
+  }
   return snapshot.docs.map((d) => d.data() as Deal);
 }
 
@@ -71,11 +80,16 @@ export async function deleteDeal(userId: string, dealId: string): Promise<void> 
 
 /** Fetch all criteria for a user, ordered by creation date */
 export async function fetchCriteria(userId: string): Promise<InvestmentCriteria[]> {
-  const q = query(
-    userSubcollection(userId, 'criteria'),
-    orderBy('createdAt', 'desc')
-  );
-  const snapshot = await getDocs(q);
+  let snapshot: QuerySnapshot<DocumentData, DocumentData>;
+  try {
+    const q = query(
+      userSubcollection(userId, 'criteria'),
+      orderBy('createdAt', 'desc')
+    );
+    snapshot = await getDocs(q);
+  } catch {
+    snapshot = await getDocs(userSubcollection(userId, 'criteria'));
+  }
   return snapshot.docs.map((d) => d.data() as InvestmentCriteria);
 }
 

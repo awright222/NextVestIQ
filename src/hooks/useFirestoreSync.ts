@@ -59,13 +59,20 @@ export function useFirestoreSync() {
     (async () => {
       dispatch(setLoading(true));
 
-      const timeout = <T,>(ms: number): Promise<T> =>
-        new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), ms));
-
       try {
+        // Simple fetch with generous AbortController-style timeout
+        const fetchWithTimeout = async (): Promise<[Deal[], InvestmentCriteria[]]> => {
+          const result = await Promise.all([fetchDeals(userId), fetchCriteria(userId)]);
+          return result;
+        };
+
+        const timeoutPromise = new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error('Firestore fetch timed out after 20s')), 20000)
+        );
+
         const [remoteDeals, remoteCriteria] = await Promise.race([
-          Promise.all([fetchDeals(userId), fetchCriteria(userId)]),
-          timeout<[Deal[], InvestmentCriteria[]]>(8000),
+          fetchWithTimeout(),
+          timeoutPromise,
         ]);
 
         // Merge: if Firestore is empty but we have local deals (from
@@ -110,7 +117,12 @@ export function useFirestoreSync() {
 
         loadedRef.current = true;
       } catch (err) {
-        console.error('Failed to load data from Firestore:', err);
+        console.error(
+          'Failed to load data from Firestore:', err,
+          '\n\nIf this persists, check your Firestore security rules in the Firebase console.',
+          '\nRequired rules:\n  match /users/{userId}/{document=**} {\n    allow read, write: if request.auth != null && request.auth.uid == userId;\n  }',
+          '\n\nDeals are still available locally via browser storage.'
+        );
         // DON'T wipe local data — just stop loading and keep whatever
         // we already have (from localStorage hydration)
         dispatch(setLoading(false));
