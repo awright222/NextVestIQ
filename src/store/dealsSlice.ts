@@ -24,7 +24,7 @@ const initialState: DealsState = {
   items: [],
   activeDealId: null,
   comparisonIds: [],
-  loading: false,
+  loading: true,
   error: null,
 };
 

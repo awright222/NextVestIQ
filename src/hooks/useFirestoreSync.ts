@@ -51,16 +51,22 @@ export function useFirestoreSync() {
       // Logged out — clear state
       dispatch(setDeals([]));
       dispatch(setCriteria([]));
+      dispatch(setLoading(false));
       return;
     }
 
     // Logged in — fetch deals + criteria from Firestore
     (async () => {
       dispatch(setLoading(true));
+
+      // Race the fetch against a timeout so users aren't stuck waiting
+      const timeout = <T,>(ms: number): Promise<T> =>
+        new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), ms));
+
       try {
-        const [remoteDeals, remoteCriteria] = await Promise.all([
-          fetchDeals(userId),
-          fetchCriteria(userId),
+        const [remoteDeals, remoteCriteria] = await Promise.race([
+          Promise.all([fetchDeals(userId), fetchCriteria(userId)]),
+          timeout<[Deal[], InvestmentCriteria[]]>(8000),
         ]);
         dispatch(setDeals(remoteDeals));
         dispatch(setCriteria(remoteCriteria));
@@ -69,7 +75,8 @@ export function useFirestoreSync() {
         loadedRef.current = true;
       } catch (err) {
         console.error('Failed to load data:', err);
-        dispatch(setError('Failed to load your data. Please refresh.'));
+        dispatch(setDeals([]));
+        dispatch(setLoading(false));
         loadedRef.current = true;
       }
     })();
