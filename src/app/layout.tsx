@@ -22,10 +22,6 @@ export const metadata: Metadata = {
   title: "DealForge — Forge Better Investments",
   description:
     "Professional underwriting software for acquisition entrepreneurs.",
-  icons: {
-    icon: "/img/favicon.io.png",
-    apple: "/img/favicon.io.png",
-  },
 };
 
 export default function RootLayout({
