@@ -59,7 +59,6 @@ export function useFirestoreSync() {
     (async () => {
       dispatch(setLoading(true));
 
-      // Race the fetch against a timeout so users aren't stuck waiting
       const timeout = <T,>(ms: number): Promise<T> =>
         new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), ms));
 
@@ -68,19 +67,59 @@ export function useFirestoreSync() {
           Promise.all([fetchDeals(userId), fetchCriteria(userId)]),
           timeout<[Deal[], InvestmentCriteria[]]>(8000),
         ]);
-        dispatch(setDeals(remoteDeals));
-        dispatch(setCriteria(remoteCriteria));
-        prevDealsRef.current = JSON.stringify(remoteDeals);
-        prevCriteriaRef.current = JSON.stringify(remoteCriteria);
+
+        // Merge: if Firestore is empty but we have local deals (from
+        // localStorage), keep local deals and push them to Firestore
+        // so they aren't lost.
+        const existingDeals = deals; // current Redux state (may be from localStorage)
+        if (remoteDeals.length > 0) {
+          dispatch(setDeals(remoteDeals));
+          prevDealsRef.current = JSON.stringify(remoteDeals);
+        } else if (existingDeals.length > 0) {
+          // Firestore is empty but we have local data — keep it
+          // and upload to Firestore so it persists server-side
+          prevDealsRef.current = JSON.stringify(existingDeals);
+          dispatch(setLoading(false));
+          try {
+            await Promise.all(existingDeals.map((d) => saveDeal(d)));
+          } catch (e) {
+            console.error('Failed to upload local deals to Firestore:', e);
+          }
+        } else {
+          dispatch(setDeals([]));
+          prevDealsRef.current = '[]';
+        }
+
+        if (remoteCriteria.length > 0) {
+          dispatch(setCriteria(remoteCriteria));
+          prevCriteriaRef.current = JSON.stringify(remoteCriteria);
+        } else {
+          const existingCriteria = criteria;
+          if (existingCriteria.length > 0) {
+            prevCriteriaRef.current = JSON.stringify(existingCriteria);
+            try {
+              await Promise.all(existingCriteria.map((c) => saveCriteria(c)));
+            } catch (e) {
+              console.error('Failed to upload local criteria to Firestore:', e);
+            }
+          } else {
+            dispatch(setCriteria([]));
+            prevCriteriaRef.current = '[]';
+          }
+        }
+
         loadedRef.current = true;
       } catch (err) {
-        console.error('Failed to load data:', err);
-        dispatch(setDeals([]));
+        console.error('Failed to load data from Firestore:', err);
+        // DON'T wipe local data — just stop loading and keep whatever
+        // we already have (from localStorage hydration)
         dispatch(setLoading(false));
+        prevDealsRef.current = JSON.stringify(deals);
+        prevCriteriaRef.current = JSON.stringify(criteria);
         loadedRef.current = true;
       }
     })();
-  }, [user, dispatch]);
+  }, [user, dispatch]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ─── Auto-save deal changes to Firestore ─────────────
 

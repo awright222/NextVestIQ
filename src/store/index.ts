@@ -68,8 +68,19 @@ export function makeStore() {
     s.subscribe(() => {
       const state = s.getState();
       try {
-        if (!state.deals.loading || state.deals.items.length > 0) {
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(state.deals.items));
+        const items = state.deals.items;
+        // Always persist if we have deals; only persist empty if
+        // the user is explicitly logged out (loading = false, empty items)
+        // to avoid wiping the cache during a Firestore load race
+        if (items.length > 0) {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+        } else if (!state.deals.loading) {
+          // Only clear cache when loading is done and items truly empty
+          // (i.e. user deleted all deals or logged out)
+          const existing = localStorage.getItem(STORAGE_KEY);
+          if (!existing || JSON.parse(existing).length === 0) {
+            localStorage.setItem(STORAGE_KEY, '[]');
+          }
         }
         localStorage.setItem(CRITERIA_KEY, JSON.stringify(state.criteria.items));
       } catch { /* storage full or unavailable */ }
