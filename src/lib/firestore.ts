@@ -29,6 +29,21 @@ function userDoc(userId: string, sub: string, docId: string) {
   return doc(db, 'users', userId, sub, docId);
 }
 
+/**
+ * Recursively strip `undefined` values from an object so Firestore
+ * doesn't reject the document.  Arrays are preserved; `null` is kept.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function stripUndefined<T>(obj: T): T {
+  if (obj === null || obj === undefined || typeof obj !== 'object') return obj;
+  if (Array.isArray(obj)) return obj.map(stripUndefined) as unknown as T;
+  const clean: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(obj as Record<string, unknown>)) {
+    if (v !== undefined) clean[k] = stripUndefined(v);
+  }
+  return clean as T;
+}
+
 // ═══════════════════════════════════════════════════════
 // Deals
 // ═══════════════════════════════════════════════════════
@@ -42,7 +57,7 @@ export async function fetchDeals(userId: string): Promise<Deal[]> {
 
 /** Save (create or update) a deal to Firestore */
 export async function saveDeal(deal: Deal): Promise<void> {
-  await setDoc(userDoc(deal.userId, 'deals', deal.id), deal);
+  await setDoc(userDoc(deal.userId, 'deals', deal.id), stripUndefined(deal));
 }
 
 /** Delete a deal from Firestore */
@@ -66,7 +81,7 @@ export async function fetchCriteria(userId: string): Promise<InvestmentCriteria[
 
 /** Save (create or update) a criteria to Firestore */
 export async function saveCriteria(criteria: InvestmentCriteria): Promise<void> {
-  await setDoc(userDoc(criteria.userId, 'criteria', criteria.id), criteria);
+  await setDoc(userDoc(criteria.userId, 'criteria', criteria.id), stripUndefined(criteria));
 }
 
 /** Delete a criteria from Firestore */
