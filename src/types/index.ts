@@ -328,4 +328,19 @@ export interface DealBreakdowns {
   interestItems?: InterestItem[];
   leases?: LeaseItem[];
   utilities?: UtilityItem[];
+  rentComps?: RentComp[];
+}
+
+// ─── Rent Comps ──────────────────────────────────────────────
+
+export interface RentComp {
+  id: string;
+  address: string;
+  beds: number;
+  baths: number;
+  sqft: number;
+  monthlyRent: number;
+  weight: 1 | 2 | 3;    // Star weight for weighted average (1=low, 3=high)
+  source: string;        // "Zillow", "Redfin", "MLS", "Landlord", etc.
+  notes: string;
 }

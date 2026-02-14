@@ -34,6 +34,15 @@ const sba7aFinancing: FinancingTerms = {
   amortizationYears: 25,
 };
 
+const hardMoneyFinancing: FinancingTerms = {
+  loanType: 'hard-money',
+  loanAmount: 0,
+  downPayment: 10,
+  interestRate: 12,
+  loanTermYears: 1,
+  amortizationYears: 30,
+};
+
 // ─── Real Estate Templates ──────────────────
 
 const singleFamilyRental: DealTemplate = {
@@ -282,12 +291,43 @@ const carWashHybrid: DealTemplate = {
   },
 };
 
+// ─── BRRRR Template ─────────────────────────
+
+const brrrrTemplate: DealTemplate = {
+  id: 'tpl-brrrr',
+  name: 'BRRRR Strategy',
+  description: 'Buy, Rehab, Rent, Refinance, Repeat — distressed property with heavy rehab and refinance plan.',
+  dealType: 'real-estate',
+  icon: '🔄',
+  tags: ['BRRRR', 'value-add', 'rehab'],
+  data: {
+    type: 'real-estate',
+    purchasePrice: 120_000,
+    closingCosts: 3_000,
+    rehabCosts: 40_000,
+    grossRentalIncome: 21_600,  // $1,800/mo after rehab (ARV-based rent)
+    otherIncome: 0,
+    vacancyRate: 8,
+    propertyTax: 2_400,
+    insurance: 1_200,
+    maintenance: 2_400,
+    propertyManagement: 10,
+    utilities: 0,
+    otherExpenses: 500,
+    financing: { ...hardMoneyFinancing, loanAmount: 108_000 },
+    annualRentGrowth: 3,
+    annualExpenseGrowth: 2,
+    annualAppreciation: 4,  // Higher due to forced appreciation from rehab
+  },
+};
+
 // ─── Export ──────────────────────────────────
 
 export const DEAL_TEMPLATES: DealTemplate[] = [
   singleFamilyRental,
   duplexRental,
   smallApartment,
+  brrrrTemplate,
   restaurantBiz,
   ecommerceBiz,
   serviceCompany,

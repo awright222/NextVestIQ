@@ -20,6 +20,7 @@ import {
   Download,
   FileSpreadsheet,
   Copy,
+  FileCheck,
 } from 'lucide-react';
 import { useAppSelector, useAppDispatch } from '@/hooks';
 import { toggleFavorite, addScenario, removeScenario, updateDeal, removeDeal, addDeal } from '@/store/dealsSlice';
@@ -33,12 +34,16 @@ import ExpenseBreakdownChart from '@/components/charts/ExpenseBreakdownChart';
 import DealAnalysisPanel from '@/components/dashboard/DealAnalysisPanel';
 import SensitivityGrid from '@/components/dashboard/SensitivityGrid';
 import AmortizationSchedule from '@/components/dashboard/AmortizationSchedule';
+import RecessionToggle from '@/components/dashboard/RecessionToggle';
+import RefinancePanel from '@/components/dashboard/RefinancePanel';
+import RentCompsPanel from '@/components/dashboard/RentCompsPanel';
+import ShareDealButton from '@/components/dashboard/ShareDealButton';
 import Modal from '@/components/ui/Modal';
 import type { Deal, Scenario, RealEstateDeal, BusinessDeal, HybridDeal } from '@/types';
 import { calcRealEstateMetrics, projectCashFlows } from '@/lib/calculations/real-estate';
 import { calcBusinessMetrics, projectBusinessCashFlows } from '@/lib/calculations/business';
 import { calcHybridMetrics, projectHybridCashFlows } from '@/lib/calculations/hybrid';
-import { exportDealPDF, exportDealCSV } from '@/lib/exportPdf';
+import { exportDealPDF, exportDealCSV, exportLenderPacket } from '@/lib/exportPdf';
 import { useTour, DEAL_DETAIL_TOUR, ReplayTourButton } from '@/components/providers/TourProvider';
 
 export default function DealDetailPage() {
@@ -307,6 +312,14 @@ export default function DealDetailPage() {
                 <span className="hidden sm:inline">Export PDF</span>
               </button>
               <button
+                onClick={() => exportLenderPacket(currentDeal)}
+                className="flex items-center gap-1.5 rounded-lg border border-border px-4 py-2 text-sm font-medium text-foreground transition hover:bg-secondary"
+                title="Export bank-ready lender packet"
+              >
+                <FileCheck className="h-4 w-4" />
+                <span className="hidden sm:inline">Lender Packet</span>
+              </button>
+              <button
                 onClick={() => exportDealCSV(currentDeal)}
                 className="flex items-center gap-1.5 rounded-lg border border-border px-4 py-2 text-sm font-medium text-foreground transition hover:bg-secondary"
                 title="Export CSV spreadsheet"
@@ -314,6 +327,7 @@ export default function DealDetailPage() {
                 <FileSpreadsheet className="h-4 w-4" />
                 <span className="hidden sm:inline">Export CSV</span>
               </button>
+              <ShareDealButton deal={currentDeal} />
               <button
                 onClick={() => setShowDeleteConfirm(true)}
                 className="rounded-lg border border-red-200 p-2 text-red-500 transition hover:bg-red-50 dark:border-red-800 dark:hover:bg-red-950"
@@ -331,6 +345,11 @@ export default function DealDetailPage() {
         {/* ─── Metrics ─────────────────────────────── */}
         <div data-tour="metrics-grid">
           <MetricsPanel dealType={currentDeal.dealType} data={currentDeal.data} />
+        </div>
+
+        {/* ─── Recession Mode ──────────────────────── */}
+        <div className="mt-6">
+          <RecessionToggle deal={currentDeal} />
         </div>
 
         {/* ─── Charts ──────────────────────────────── */}
@@ -351,6 +370,14 @@ export default function DealDetailPage() {
         {/* ─── Amortization Schedule ──────────────── */}
         <div className="mt-6" data-tour="amortization">
           <AmortizationSchedule financing={currentDeal.data.financing} />
+        </div>
+        {/* ─── Refinance Modeling ─────────────────── */}
+        <div className="mt-6">
+          <RefinancePanel deal={currentDeal} />
+        </div>
+        {/* ─── Rent Comps ────────────────────────── */}
+        <div className="mt-6">
+          <RentCompsPanel deal={currentDeal} />
         </div>
         {/* ─── Sensitivity Analysis ───────────────── */}
         <div className="mt-6" data-tour="sensitivity">
