@@ -21,6 +21,11 @@ import type { Deal, InvestmentCriteria } from '@/types';
 
 // ─── Helpers ─────────────────────────────────────────
 
+/** Check if the Firestore SDK is initialized (db object exists) */
+export function isFirestoreAvailable(): boolean {
+  return !!db;
+}
+
 function userSubcollection(userId: string, sub: string) {
   if (!db) throw new Error('Firestore not configured');
   return collection(db, 'users', userId, sub);

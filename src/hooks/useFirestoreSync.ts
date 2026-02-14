@@ -3,6 +3,7 @@
 // ============================================
 // - Loads deals + criteria from Firestore when user logs in
 // - Auto-saves mutations to Firestore
+// - Falls back gracefully to localStorage if Firestore is unreachable
 // - Clears Redux state on logout
 
 'use client';
@@ -10,7 +11,7 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { useAppDispatch, useAppSelector } from '@/hooks';
-import { setDeals, setLoading, setError } from '@/store/dealsSlice';
+import { setDeals, setLoading } from '@/store/dealsSlice';
 import { setCriteria } from '@/store/criteriaSlice';
 import {
   fetchDeals,
@@ -19,6 +20,7 @@ import {
   fetchCriteria,
   saveCriteria,
   deleteCriteria,
+  isFirestoreAvailable,
 } from '@/lib/firestore';
 import type { Deal, InvestmentCriteria } from '@/types';
 
@@ -28,13 +30,12 @@ export function useFirestoreSync() {
   const deals = useAppSelector((s) => s.deals.items);
   const criteria = useAppSelector((s) => s.criteria.items);
 
-  // Track the previous user ID so we know when auth changes
   const prevUserIdRef = useRef<string | null>(null);
-  // Track whether initial load is done (prevents saving stale/empty state)
   const loadedRef = useRef(false);
-  // Track the previous snapshots to detect actual changes
   const prevDealsRef = useRef<string>('');
   const prevCriteriaRef = useRef<string>('');
+  // Once we know Firestore is down, stop retrying for this session
+  const firestoreDisabledRef = useRef(false);
 
   // ─── Load deals + criteria when user logs in ────────
 
@@ -48,67 +49,70 @@ export function useFirestoreSync() {
     prevCriteriaRef.current = '';
 
     if (!userId) {
-      // Logged out — clear state
       dispatch(setDeals([]));
       dispatch(setCriteria([]));
       dispatch(setLoading(false));
       return;
     }
 
-    // Logged in — fetch deals + criteria from Firestore
     (async () => {
       dispatch(setLoading(true));
 
-      try {
-        // Simple fetch with generous AbortController-style timeout
-        const fetchWithTimeout = async (): Promise<[Deal[], InvestmentCriteria[]]> => {
-          const result = await Promise.all([fetchDeals(userId), fetchCriteria(userId)]);
-          return result;
-        };
+      // Quick check: is Firestore even reachable?
+      if (firestoreDisabledRef.current || !isFirestoreAvailable()) {
+        console.info('[DealForge] Firestore not configured — using local storage.');
+        firestoreDisabledRef.current = true;
+        dispatch(setLoading(false));
+        prevDealsRef.current = JSON.stringify(deals);
+        prevCriteriaRef.current = JSON.stringify(criteria);
+        loadedRef.current = true;
+        return;
+      }
 
+      try {
+        // Fetch with a timeout — Firestore can hang if rules block or DB isn't provisioned
+        const timeoutMs = 12_000;
+        const fetchPromise = Promise.all([fetchDeals(userId), fetchCriteria(userId)]);
         const timeoutPromise = new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error('Firestore fetch timed out after 20s')), 20000)
+          setTimeout(() => reject(new Error('timeout')), timeoutMs)
         );
 
         const [remoteDeals, remoteCriteria] = await Promise.race([
-          fetchWithTimeout(),
+          fetchPromise,
           timeoutPromise,
         ]);
 
-        // Merge: if Firestore is empty but we have local deals (from
-        // localStorage), keep local deals and push them to Firestore
-        // so they aren't lost.
-        const existingDeals = deals; // current Redux state (may be from localStorage)
+        // ── Reconcile deals ──
+        const localDeals = deals;
         if (remoteDeals.length > 0) {
-          dispatch(setDeals(remoteDeals));
-          prevDealsRef.current = JSON.stringify(remoteDeals);
-        } else if (existingDeals.length > 0) {
-          // Firestore is empty but we have local data — keep it
-          // and upload to Firestore so it persists server-side
-          prevDealsRef.current = JSON.stringify(existingDeals);
-          dispatch(setLoading(false));
-          try {
-            await Promise.all(existingDeals.map((d) => saveDeal(d)));
-          } catch (e) {
-            console.error('Failed to upload local deals to Firestore:', e);
+          // Merge local-only deals into Firestore result
+          const remoteIds = new Set(remoteDeals.map((d) => d.id));
+          const localOnly = localDeals.filter((d) => !remoteIds.has(d.id));
+          const merged = [...remoteDeals, ...localOnly];
+          dispatch(setDeals(merged));
+          prevDealsRef.current = JSON.stringify(merged);
+          // Upload any local-only deals to Firestore
+          if (localOnly.length > 0) {
+            Promise.all(localOnly.map((d) => saveDeal(d))).catch(() => {});
           }
+        } else if (localDeals.length > 0) {
+          prevDealsRef.current = JSON.stringify(localDeals);
+          dispatch(setLoading(false));
+          Promise.all(localDeals.map((d) => saveDeal(d))).catch(() => {});
         } else {
           dispatch(setDeals([]));
           prevDealsRef.current = '[]';
         }
 
+        // ── Reconcile criteria ──
         if (remoteCriteria.length > 0) {
           dispatch(setCriteria(remoteCriteria));
           prevCriteriaRef.current = JSON.stringify(remoteCriteria);
         } else {
-          const existingCriteria = criteria;
-          if (existingCriteria.length > 0) {
-            prevCriteriaRef.current = JSON.stringify(existingCriteria);
-            try {
-              await Promise.all(existingCriteria.map((c) => saveCriteria(c)));
-            } catch (e) {
-              console.error('Failed to upload local criteria to Firestore:', e);
-            }
+          const localCriteria = criteria;
+          if (localCriteria.length > 0) {
+            prevCriteriaRef.current = JSON.stringify(localCriteria);
+            Promise.all(localCriteria.map((c) => saveCriteria(c))).catch(() => {});
           } else {
             dispatch(setCriteria([]));
             prevCriteriaRef.current = '[]';
@@ -116,15 +120,19 @@ export function useFirestoreSync() {
         }
 
         loadedRef.current = true;
-      } catch (err) {
-        console.error(
-          'Failed to load data from Firestore:', err,
-          '\n\nIf this persists, check your Firestore security rules in the Firebase console.',
-          '\nRequired rules:\n  match /users/{userId}/{document=**} {\n    allow read, write: if request.auth != null && request.auth.uid == userId;\n  }',
-          '\n\nDeals are still available locally via browser storage.'
+      } catch {
+        // Firestore unreachable — disable for this session so we don't
+        // keep timing out on every save. localStorage handles persistence.
+        firestoreDisabledRef.current = true;
+        console.warn(
+          '[DealForge] Firestore is unreachable. Deals are saved locally.\n' +
+          'To enable cloud sync, ensure:\n' +
+          '  1. Firestore is provisioned in Firebase Console → Build → Firestore Database\n' +
+          '  2. Security rules allow access:\n' +
+          '     match /users/{userId}/{document=**} {\n' +
+          '       allow read, write: if request.auth != null && request.auth.uid == userId;\n' +
+          '     }'
         );
-        // DON'T wipe local data — just stop loading and keep whatever
-        // we already have (from localStorage hydration)
         dispatch(setLoading(false));
         prevDealsRef.current = JSON.stringify(deals);
         prevCriteriaRef.current = JSON.stringify(criteria);
@@ -137,7 +145,7 @@ export function useFirestoreSync() {
 
   const syncDealsToFirestore = useCallback(
     async (current: Deal[], previous: Deal[]) => {
-      if (!user) return;
+      if (!user || firestoreDisabledRef.current) return;
 
       const prevMap = new Map(previous.map((d) => [d.id, d]));
       const currMap = new Map(current.map((d) => [d.id, d]));
@@ -163,8 +171,8 @@ export function useFirestoreSync() {
       if (ops.length > 0) {
         try {
           await Promise.all(ops);
-        } catch (err) {
-          console.error('Failed to sync deals to Firestore:', err);
+        } catch {
+          // Silently fail — localStorage has the data
         }
       }
     },
@@ -189,7 +197,7 @@ export function useFirestoreSync() {
 
   const syncCriteriaToFirestore = useCallback(
     async (current: InvestmentCriteria[], previous: InvestmentCriteria[]) => {
-      if (!user) return;
+      if (!user || firestoreDisabledRef.current) return;
 
       const prevMap = new Map(previous.map((c) => [c.id, c]));
       const currMap = new Map(current.map((c) => [c.id, c]));
@@ -215,8 +223,8 @@ export function useFirestoreSync() {
       if (ops.length > 0) {
         try {
           await Promise.all(ops);
-        } catch (err) {
-          console.error('Failed to sync criteria to Firestore:', err);
+        } catch {
+          // Silently fail — localStorage has the data
         }
       }
     },
