@@ -105,7 +105,7 @@ function capRateRange(deal: RealEstateDeal | HybridDeal): { low: number; high: n
 
 // ─── Breakdown Insights ──────────────────────────────────
 
-function buildBreakdownInsights(b?: DealBreakdowns): { section: AnalysisSection | null; riskFlags: string[] } {
+export function buildBreakdownInsights(b?: DealBreakdowns): { section: AnalysisSection | null; riskFlags: string[] } {
   if (!b) return { section: null, riskFlags: [] };
 
   const lines: string[] = [];

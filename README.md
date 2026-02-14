@@ -1,6 +1,6 @@
 # NextVestIQ
 
-Real estate and business investment analysis platform. Evaluate deals with institutional-grade metrics, AI-powered deal analysis, scenario modeling, and side-by-side comparison.
+Real estate and business investment analysis platform. Evaluate deals with institutional-grade metrics, AI-powered deal analysis, detailed financial breakdowns, scenario modeling, and side-by-side comparison.
 
 ## Tech Stack
 
@@ -10,7 +10,7 @@ Real estate and business investment analysis platform. Evaluate deals with insti
 - **Database / Auth**: Firebase (Firestore + Auth)
 - **Charts**: Recharts
 - **PDF Export**: jsPDF + autoTable
-- **Testing**: Vitest (79 unit tests)
+- **Testing**: Vitest
 - **AI Analysis**: OpenAI GPT (optional) + built-in rule engine
 - **Icons**: Lucide React
 - **Deployment**: Vercel
@@ -61,6 +61,12 @@ src/
 │   ├── layout.tsx              # Root layout (providers)
 │   └── page.tsx                # Landing page
 ├── components/
+│   ├── breakdowns/
+│   │   ├── AssetSchedule.tsx       # Fixed asset & depreciation detail
+│   │   ├── InterestBreakdown.tsx   # Loan-by-loan interest schedule
+│   │   ├── LeaseBreakdown.tsx      # Per-location lease agreements
+│   │   ├── PayrollBreakdown.tsx    # Employee roster + employer taxes
+│   │   └── UtilityBreakdown.tsx    # Per-location utility costs
 │   ├── charts/
 │   │   ├── CashFlowChart.tsx
 │   │   ├── ExpenseBreakdownChart.tsx
@@ -80,6 +86,7 @@ src/
 │   │   ├── FirestoreSyncProvider.tsx
 │   │   └── StoreProvider.tsx
 │   └── ui/
+│       ├── BreakdownDrawer.tsx     # Slide-out detail panel
 │       ├── FormField.tsx
 │       ├── Modal.tsx
 │       ├── SectionHeader.tsx
@@ -99,7 +106,7 @@ src/
 │       ├── business.ts
 │       ├── hybrid.ts
 │       ├── real-estate.ts
-│       └── __tests__/         # 79 unit tests
+│       └── __tests__/         # Unit tests
 ├── store/
 │   ├── criteriaSlice.ts
 │   ├── dealsSlice.ts
@@ -120,6 +127,14 @@ src/
 - Covers: what the business produces (SDE), what rational buyers pay (multiples), reasonable price range, debt service test, and risk flags
 - **Two modes**: built-in rule engine (always works) + OpenAI-enhanced analysis for richer narrative
 - Add `OPENAI_API_KEY` to `.env.local` to enable AI mode
+
+### Financial Detail Breakdowns
+Optional drill-down schedules that auto-calculate parent totals — keeps the form simple for quick deals, with professional-grade detail when you need it:
+- **Payroll** — Employee roster with headcount, hourly/salary rates, and employer taxes (FICA, FUTA, SUI, WC)
+- **Assets** — Fixed asset & depreciation schedule (straight-line + MACRS methods)
+- **Interest** — Loan-by-loan debt/interest schedule with lender and balance detail
+- **Leases** — Per-location lease agreements with dates, escalation, NNN/CAM, and term warnings
+- **Utilities** — Per-location utility costs by category (electric, gas, water, trash, internet)
 
 ### What-If Scenarios
 - Adjust any variable and see real-time metric impact
@@ -146,7 +161,7 @@ src/
 ```bash
 npm run dev        # Dev server
 npm run build      # Production build
-npm run test       # 79 unit tests
+npm run test       # Unit tests
 npm run test:watch # Watch mode
 npm run lint       # ESLint
 ```
