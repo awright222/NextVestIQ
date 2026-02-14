@@ -22,7 +22,30 @@ import type {
   BusinessDeal,
   HybridDeal,
   FinancingTerms,
+  DealBreakdowns,
+  PayrollBreakdown as PayrollBreakdownType,
+  Asset,
+  InterestItem,
+  LeaseItem,
+  UtilityItem,
 } from '@/types';
+import BreakdownDrawer from '@/components/ui/BreakdownDrawer';
+import PayrollBreakdown, {
+  calcPayrollTotal,
+  defaultPayrollBreakdown,
+} from '@/components/breakdowns/PayrollBreakdown';
+import AssetSchedule, {
+  calcTotalDepreciation,
+} from '@/components/breakdowns/AssetSchedule';
+import InterestBreakdownComp, {
+  calcTotalInterest,
+} from '@/components/breakdowns/InterestBreakdown';
+import LeaseBreakdownComp, {
+  calcTotalLeaseCost,
+} from '@/components/breakdowns/LeaseBreakdown';
+import UtilityBreakdownComp, {
+  calcTotalUtilities,
+} from '@/components/breakdowns/UtilityBreakdown';
 
 // ─── Financing defaults per loan type ────────────────────────
 
@@ -170,6 +193,15 @@ export default function DealForm({ existingDeal, onSave, onCancel }: DealFormPro
     growth: false,
   });
 
+  // Breakdowns state
+  const [breakdowns, setBreakdowns] = useState<DealBreakdowns>(
+    existingDeal?.breakdowns ?? {}
+  );
+
+  // Which breakdown drawer is open
+  type DrawerKey = 'payroll' | 'assets' | 'interest' | 'leases' | 'utilities' | null;
+  const [openDrawer, setOpenDrawer] = useState<DrawerKey>(null);
+
   const toggleSection = (key: keyof typeof sections) =>
     setSections((s) => ({ ...s, [key]: !s[key] }));
 
@@ -246,6 +278,88 @@ export default function DealForm({ existingDeal, onSave, onCancel }: DealFormPro
   function num(e: React.ChangeEvent<HTMLInputElement>): number {
     const v = parseFloat(e.target.value);
     return isNaN(v) ? 0 : v;
+  }
+
+  // ─── Breakdown handlers (auto-calc parent fields) ────────
+
+  function handlePayrollChange(payroll: PayrollBreakdownType) {
+    setBreakdowns((prev) => ({ ...prev, payroll }));
+    const total = calcPayrollTotal(payroll);
+    if (total > 0) {
+      // Payroll feeds into operatingExpenses for biz/hybrid
+      if (dealType === 'business') {
+        setBizData((prev) => ({ ...prev, operatingExpenses: total }));
+      } else if (isHybrid) {
+        setHybridData((prev) => ({ ...prev, businessOperatingExpenses: total }));
+      }
+    }
+  }
+
+  function handleAssetsChange(assets: Asset[]) {
+    setBreakdowns((prev) => ({ ...prev, assets }));
+    const total = calcTotalDepreciation(assets);
+    if (dealType === 'business') {
+      setBizData((prev) => ({ ...prev, depreciation: total }));
+    } else if (isHybrid) {
+      setHybridData((prev) => ({ ...prev, depreciation: total }));
+    }
+  }
+
+  function handleInterestChange(interestItems: InterestItem[]) {
+    setBreakdowns((prev) => ({ ...prev, interestItems }));
+    const total = calcTotalInterest(interestItems);
+    if (dealType === 'business') {
+      setBizData((prev) => ({ ...prev, interest: total }));
+    } else if (isHybrid) {
+      setHybridData((prev) => ({ ...prev, interest: total }));
+    }
+  }
+
+  function handleLeasesChange(leases: LeaseItem[]) {
+    setBreakdowns((prev) => ({ ...prev, leases }));
+    // Lease costs typically flow into operatingExpenses or otherPropertyExpenses
+    // We don't auto-overwrite since leases may be part of a larger opex number
+  }
+
+  function handleUtilitiesChange(utilities: UtilityItem[]) {
+    setBreakdowns((prev) => ({ ...prev, utilities }));
+    const total = calcTotalUtilities(utilities);
+    if (total > 0) {
+      if (isRE) {
+        setReData((prev) => ({ ...prev, utilities: total }));
+      } else if (isHybrid) {
+        setHybridData((prev) => ({ ...prev, utilities: total }));
+      }
+    }
+  }
+
+  /** Small "Break Down ▸" button rendered next to form fields */
+  function breakdownBtn(drawer: NonNullable<DrawerKey>, label?: string) {
+    const hasData = (() => {
+      switch (drawer) {
+        case 'payroll': return (breakdowns.payroll?.employees.length ?? 0) > 0;
+        case 'assets': return (breakdowns.assets?.length ?? 0) > 0;
+        case 'interest': return (breakdowns.interestItems?.length ?? 0) > 0;
+        case 'leases': return (breakdowns.leases?.length ?? 0) > 0;
+        case 'utilities': return (breakdowns.utilities?.length ?? 0) > 0;
+      }
+    })();
+
+    return (
+      <button
+        type="button"
+        onClick={() => setOpenDrawer(drawer)}
+        className={`inline-flex items-center gap-1 rounded px-2 py-1 text-xs font-medium transition ${
+          hasData
+            ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200 dark:bg-emerald-900 dark:text-emerald-300 dark:hover:bg-emerald-800'
+            : 'bg-secondary text-muted-foreground hover:bg-secondary/80'
+        }`}
+        title={`Open ${label || drawer} detail breakdown`}
+      >
+        {hasData ? '✓ ' : ''}
+        {label || 'Break Down ▸'}
+      </button>
+    );
   }
 
   // ─── Validation ──────────────────────────────────────────
@@ -340,6 +454,7 @@ export default function DealForm({ existingDeal, onSave, onCancel }: DealFormPro
       name: name || (isRE ? 'Untitled Property' : isHybrid ? 'Untitled Hybrid' : 'Untitled Business'),
       dealType,
       data: isRE ? reData : isHybrid ? hybridData : bizData,
+      breakdowns: Object.keys(breakdowns).length > 0 ? breakdowns : undefined,
       scenarios: existingDeal?.scenarios ?? [],
       notes,
       tags: tags
@@ -506,7 +621,10 @@ export default function DealForm({ existingDeal, onSave, onCancel }: DealFormPro
                 <FormField label="Insurance" prefix="$" type="number" value={reData.insurance || ''} onChange={(e) => updateRE('insurance', num(e))} />
                 <FormField label="Maintenance" prefix="$" type="number" value={reData.maintenance || ''} onChange={(e) => updateRE('maintenance', num(e))} />
                 <FormField label="Management Fee" suffix="%" type="number" value={reData.propertyManagement || ''} onChange={(e) => updateRE('propertyManagement', num(e))} hint="% of gross income" />
-                <FormField label="Utilities" prefix="$" type="number" value={reData.utilities || ''} onChange={(e) => updateRE('utilities', num(e))} />
+                <div>
+                  <FormField label="Utilities" prefix="$" type="number" value={reData.utilities || ''} onChange={(e) => updateRE('utilities', num(e))} hint={breakdowns.utilities?.length ? 'Auto-calculated from breakdown' : undefined} />
+                  <div className="mt-1">{breakdownBtn('utilities', 'Utilities ▸')}</div>
+                </div>
                 <FormField label="Other Expenses" prefix="$" type="number" value={reData.otherExpenses || ''} onChange={(e) => updateRE('otherExpenses', num(e))} />
               </div>
             )}
@@ -565,10 +683,18 @@ export default function DealForm({ existingDeal, onSave, onCancel }: DealFormPro
           <div>
             <SectionHeader title="Revenue & Expenses (Annual)" isOpen={sections.income} onToggle={() => toggleSection('income')} />
             {sections.income && (
-              <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
-                <FormField label="Annual Revenue" prefix="$" type="number" value={bizData.annualRevenue || ''} onChange={(e) => { updateBiz('annualRevenue', num(e)); setErrors((p) => ({ ...p, annualRevenue: '' })); }} error={fieldError('annualRevenue')} />
-                <FormField label="Cost of Goods" prefix="$" type="number" value={bizData.costOfGoods || ''} onChange={(e) => updateBiz('costOfGoods', num(e))} />
-                <FormField label="Operating Expenses" prefix="$" type="number" value={bizData.operatingExpenses || ''} onChange={(e) => updateBiz('operatingExpenses', num(e))} />
+              <div className="mt-3 space-y-3">
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                  <FormField label="Annual Revenue" prefix="$" type="number" value={bizData.annualRevenue || ''} onChange={(e) => { updateBiz('annualRevenue', num(e)); setErrors((p) => ({ ...p, annualRevenue: '' })); }} error={fieldError('annualRevenue')} />
+                  <FormField label="Cost of Goods" prefix="$" type="number" value={bizData.costOfGoods || ''} onChange={(e) => updateBiz('costOfGoods', num(e))} />
+                  <div>
+                    <FormField label="Operating Expenses" prefix="$" type="number" value={bizData.operatingExpenses || ''} onChange={(e) => updateBiz('operatingExpenses', num(e))} hint={breakdowns.payroll?.employees.length ? 'Auto-calculated from payroll' : undefined} />
+                    <div className="mt-1 flex gap-1.5">
+                      {breakdownBtn('payroll', 'Payroll ▸')}
+                      {breakdownBtn('leases', 'Leases ▸')}
+                    </div>
+                  </div>
+                </div>
               </div>
             )}
           </div>
@@ -579,9 +705,15 @@ export default function DealForm({ existingDeal, onSave, onCancel }: DealFormPro
             {sections.expenses && (
               <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
                 <FormField label="Owner Salary" prefix="$" type="number" value={bizData.ownerSalary || ''} onChange={(e) => updateBiz('ownerSalary', num(e))} hint="Added back for SDE" />
-                <FormField label="Depreciation" prefix="$" type="number" value={bizData.depreciation || ''} onChange={(e) => updateBiz('depreciation', num(e))} />
+                <div>
+                  <FormField label="Depreciation" prefix="$" type="number" value={bizData.depreciation || ''} onChange={(e) => updateBiz('depreciation', num(e))} hint={breakdowns.assets?.length ? 'Auto-calculated from assets' : undefined} />
+                  <div className="mt-1">{breakdownBtn('assets', 'Assets ▸')}</div>
+                </div>
                 <FormField label="Amortization" prefix="$" type="number" value={bizData.amortization || ''} onChange={(e) => updateBiz('amortization', num(e))} />
-                <FormField label="Interest" prefix="$" type="number" value={bizData.interest || ''} onChange={(e) => updateBiz('interest', num(e))} />
+                <div>
+                  <FormField label="Interest" prefix="$" type="number" value={bizData.interest || ''} onChange={(e) => updateBiz('interest', num(e))} hint={breakdowns.interestItems?.length ? 'Auto-calculated from debt schedule' : undefined} />
+                  <div className="mt-1">{breakdownBtn('interest', 'Debt Schedule ▸')}</div>
+                </div>
                 <FormField label="Taxes" prefix="$" type="number" value={bizData.taxes || ''} onChange={(e) => updateBiz('taxes', num(e))} />
                 <FormField label="Other Add-Backs" prefix="$" type="number" value={bizData.otherAddBacks || ''} onChange={(e) => updateBiz('otherAddBacks', num(e))} hint="One-time / discretionary" />
               </div>
@@ -668,7 +800,10 @@ export default function DealForm({ existingDeal, onSave, onCancel }: DealFormPro
                 <FormField label="Insurance" prefix="$" type="number" value={hybridData.insurance || ''} onChange={(e) => updateHybrid('insurance', num(e))} />
                 <FormField label="Maintenance" prefix="$" type="number" value={hybridData.maintenance || ''} onChange={(e) => updateHybrid('maintenance', num(e))} />
                 <FormField label="Management Fee" suffix="%" type="number" value={hybridData.propertyManagement || ''} onChange={(e) => updateHybrid('propertyManagement', num(e))} hint="% of property gross income" />
-                <FormField label="Utilities" prefix="$" type="number" value={hybridData.utilities || ''} onChange={(e) => updateHybrid('utilities', num(e))} />
+                <div>
+                  <FormField label="Utilities" prefix="$" type="number" value={hybridData.utilities || ''} onChange={(e) => updateHybrid('utilities', num(e))} hint={breakdowns.utilities?.length ? 'Auto-calculated from breakdown' : undefined} />
+                  <div className="mt-1">{breakdownBtn('utilities', 'Utilities ▸')}</div>
+                </div>
                 <FormField label="Other Property Expenses" prefix="$" type="number" value={hybridData.otherPropertyExpenses || ''} onChange={(e) => updateHybrid('otherPropertyExpenses', num(e))} />
               </div>
             )}
@@ -680,7 +815,13 @@ export default function DealForm({ existingDeal, onSave, onCancel }: DealFormPro
             <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
               <FormField label="Annual Revenue" prefix="$" type="number" value={hybridData.annualRevenue || ''} onChange={(e) => updateHybrid('annualRevenue', num(e))} />
               <FormField label="Cost of Goods" prefix="$" type="number" value={hybridData.costOfGoods || ''} onChange={(e) => updateHybrid('costOfGoods', num(e))} />
-              <FormField label="Operating Expenses" prefix="$" type="number" value={hybridData.businessOperatingExpenses || ''} onChange={(e) => updateHybrid('businessOperatingExpenses', num(e))} />
+              <div>
+                <FormField label="Operating Expenses" prefix="$" type="number" value={hybridData.businessOperatingExpenses || ''} onChange={(e) => updateHybrid('businessOperatingExpenses', num(e))} hint={breakdowns.payroll?.employees.length ? 'Auto-calculated from payroll' : undefined} />
+                <div className="mt-1 flex gap-1.5">
+                  {breakdownBtn('payroll', 'Payroll ▸')}
+                  {breakdownBtn('leases', 'Leases ▸')}
+                </div>
+              </div>
             </div>
           </div>
 
@@ -689,9 +830,15 @@ export default function DealForm({ existingDeal, onSave, onCancel }: DealFormPro
             <SectionHeader title="SDE / EBITDA Add-Backs" isOpen={true} onToggle={() => {}} />
             <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
               <FormField label="Owner Salary" prefix="$" type="number" value={hybridData.ownerSalary || ''} onChange={(e) => updateHybrid('ownerSalary', num(e))} hint="Added back for SDE" />
-              <FormField label="Depreciation" prefix="$" type="number" value={hybridData.depreciation || ''} onChange={(e) => updateHybrid('depreciation', num(e))} />
+              <div>
+                <FormField label="Depreciation" prefix="$" type="number" value={hybridData.depreciation || ''} onChange={(e) => updateHybrid('depreciation', num(e))} hint={breakdowns.assets?.length ? 'Auto-calculated from assets' : undefined} />
+                <div className="mt-1">{breakdownBtn('assets', 'Assets ▸')}</div>
+              </div>
               <FormField label="Amortization" prefix="$" type="number" value={hybridData.amortization || ''} onChange={(e) => updateHybrid('amortization', num(e))} />
-              <FormField label="Interest" prefix="$" type="number" value={hybridData.interest || ''} onChange={(e) => updateHybrid('interest', num(e))} />
+              <div>
+                <FormField label="Interest" prefix="$" type="number" value={hybridData.interest || ''} onChange={(e) => updateHybrid('interest', num(e))} hint={breakdowns.interestItems?.length ? 'Auto-calculated from debt schedule' : undefined} />
+                <div className="mt-1">{breakdownBtn('interest', 'Debt Schedule ▸')}</div>
+              </div>
               <FormField label="Taxes" prefix="$" type="number" value={hybridData.taxes || ''} onChange={(e) => updateHybrid('taxes', num(e))} />
               <FormField label="Other Add-Backs" prefix="$" type="number" value={hybridData.otherAddBacks || ''} onChange={(e) => updateHybrid('otherAddBacks', num(e))} />
             </div>
@@ -812,6 +959,80 @@ export default function DealForm({ existingDeal, onSave, onCancel }: DealFormPro
           {existingDeal ? 'Update Deal' : 'Save Deal'}
         </button>
       </div>
+
+      {/* ═══════════════════════════════════════ */}
+      {/* BREAKDOWN DRAWERS                       */}
+      {/* ═══════════════════════════════════════ */}
+
+      {/* Payroll */}
+      <BreakdownDrawer
+        title="Payroll Breakdown"
+        isOpen={openDrawer === 'payroll'}
+        onClose={() => setOpenDrawer(null)}
+        total={calcPayrollTotal(breakdowns.payroll ?? defaultPayrollBreakdown())}
+        totalLabel="Total Annual Labor Cost"
+      >
+        <PayrollBreakdown
+          data={breakdowns.payroll ?? defaultPayrollBreakdown()}
+          onChange={handlePayrollChange}
+        />
+      </BreakdownDrawer>
+
+      {/* Assets */}
+      <BreakdownDrawer
+        title="Asset & Depreciation Schedule"
+        isOpen={openDrawer === 'assets'}
+        onClose={() => setOpenDrawer(null)}
+        total={calcTotalDepreciation(breakdowns.assets ?? [])}
+        totalLabel="Total Annual Depreciation"
+      >
+        <AssetSchedule
+          data={breakdowns.assets ?? []}
+          onChange={handleAssetsChange}
+        />
+      </BreakdownDrawer>
+
+      {/* Interest */}
+      <BreakdownDrawer
+        title="Interest / Debt Schedule"
+        isOpen={openDrawer === 'interest'}
+        onClose={() => setOpenDrawer(null)}
+        total={calcTotalInterest(breakdowns.interestItems ?? [])}
+        totalLabel="Total Annual Interest"
+      >
+        <InterestBreakdownComp
+          data={breakdowns.interestItems ?? []}
+          onChange={handleInterestChange}
+        />
+      </BreakdownDrawer>
+
+      {/* Leases */}
+      <BreakdownDrawer
+        title="Lease Agreements"
+        isOpen={openDrawer === 'leases'}
+        onClose={() => setOpenDrawer(null)}
+        total={calcTotalLeaseCost(breakdowns.leases ?? [])}
+        totalLabel="Total Annual Lease Cost"
+      >
+        <LeaseBreakdownComp
+          data={breakdowns.leases ?? []}
+          onChange={handleLeasesChange}
+        />
+      </BreakdownDrawer>
+
+      {/* Utilities */}
+      <BreakdownDrawer
+        title="Utility Cost Breakdown"
+        isOpen={openDrawer === 'utilities'}
+        onClose={() => setOpenDrawer(null)}
+        total={calcTotalUtilities(breakdowns.utilities ?? [])}
+        totalLabel="Total Annual Utilities"
+      >
+        <UtilityBreakdownComp
+          data={breakdowns.utilities ?? []}
+          onChange={handleUtilitiesChange}
+        />
+      </BreakdownDrawer>
     </form>
   );
 }

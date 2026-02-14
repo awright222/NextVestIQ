@@ -62,6 +62,7 @@ Rules:
 - For business deals: SDE is king. Revenue multiples are secondary.
 - For real estate: NOI and cap rate drive everything.
 - For hybrid: value the property and business separately, then combine.
+- If breakdown schedules are provided (payroll, assets, leases, debt, utilities), incorporate their detail into your analysis — note staffing levels, lease expiration risks, depreciation impact, and debt structure.
 - Use only the sections above — do not add extra sections.
 - Return ONLY valid JSON, no markdown formatting.`;
 
@@ -213,6 +214,50 @@ function buildDealSummary(deal: Deal): string {
       `Other Add-Backs: $${h.otherAddBacks.toLocaleString()}`,
       `Financing: ${h.financing.loanType} — $${h.financing.loanAmount.toLocaleString()} loan @ ${h.financing.interestRate}%, ${h.financing.loanTermYears}yr term, ${h.financing.downPayment}% down`,
     );
+  }
+
+  // ── Append breakdown detail if available ──
+  if (deal.breakdowns) {
+    const b = deal.breakdowns;
+
+    if (b.payroll && b.payroll.employees.length > 0) {
+      lines.push('', '--- Payroll Breakdown ---');
+      lines.push(`Headcount: ${b.payroll.employees.reduce((s, e) => s + e.count, 0)}`);
+      b.payroll.employees.forEach((e) => {
+        const annual = e.wageType === 'salary' ? e.wageRate : e.wageRate * e.hoursPerWeek * e.weeksPerYear;
+        lines.push(`  ${e.title}: ${e.count} × $${annual.toLocaleString()}/yr (${e.wageType})`);
+      });
+      lines.push(`Tax rates: FICA ${b.payroll.ficaRate}%, FUTA ${b.payroll.futaRate}%, SUI ${b.payroll.suiRate}%, WC ${b.payroll.wcRate}%`);
+    }
+
+    if (b.assets && b.assets.length > 0) {
+      lines.push('', '--- Asset / Depreciation Schedule ---');
+      b.assets.forEach((a) => {
+        lines.push(`  ${a.name}: $${a.costBasis.toLocaleString()} cost, ${a.depreciationMethod}, ${a.usefulLifeYears}yr life, ${a.ownership}`);
+      });
+    }
+
+    if (b.interestItems && b.interestItems.length > 0) {
+      lines.push('', '--- Debt / Interest Schedule ---');
+      b.interestItems.forEach((i) => {
+        lines.push(`  ${i.lender} (${i.purpose}): $${i.currentBalance.toLocaleString()} bal @ ${i.interestRate}%, $${i.annualInterestPaid.toLocaleString()}/yr interest`);
+      });
+    }
+
+    if (b.leases && b.leases.length > 0) {
+      lines.push('', '--- Lease Agreements ---');
+      b.leases.forEach((l) => {
+        lines.push(`  ${l.location}: $${l.monthlyRent.toLocaleString()}/mo to ${l.landlord}, ${l.leaseStartDate}–${l.leaseEndDate}, ${l.annualEscalation}% escalation${l.tripleNet ? ', NNN' : ''}${l.camCharges ? `, CAM $${l.camCharges.toLocaleString()}/yr` : ''}`);
+      });
+    }
+
+    if (b.utilities && b.utilities.length > 0) {
+      lines.push('', '--- Utility Costs by Location ---');
+      b.utilities.forEach((u) => {
+        const monthly = u.electric + u.gas + u.water + u.trash + u.internet + u.other;
+        lines.push(`  ${u.location}: $${monthly.toLocaleString()}/mo ($${(monthly * 12).toLocaleString()}/yr)`);
+      });
+    }
   }
 
   return lines.join('\n');

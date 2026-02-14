@@ -143,6 +143,7 @@ export interface Deal {
   name: string;
   dealType: DealType;
   data: RealEstateDeal | BusinessDeal | HybridDeal;
+  breakdowns?: DealBreakdowns;
   scenarios: Scenario[];
   notes: string;
   tags: string[];
@@ -249,4 +250,82 @@ export interface UserPreferences {
   defaultLoanType: LoanType;
   dashboardLayout: 'grid' | 'list';
   theme: 'light' | 'dark' | 'system';
+}
+
+// ─── Breakdowns (optional drill-downs) ──────────────────────
+// These are optional detail schedules that auto-calculate
+// the summary totals on the parent deal fields.
+// The calculation engine never reads these — it only sees
+// the summary numbers. The AI analysis engine uses them
+// for richer narrative.
+
+export interface Employee {
+  id: string;
+  title: string;           // "Barista", "Manager", etc.
+  count: number;           // Number of employees in this role
+  wageRate: number;        // Hourly or annual rate
+  wageType: 'hourly' | 'salary';
+  hoursPerWeek: number;    // For hourly employees
+  weeksPerYear: number;    // Typically 52
+}
+
+export interface PayrollBreakdown {
+  employees: Employee[];
+  ficaRate: number;        // Employer FICA (SS + Medicare) — typically 7.65%
+  futaRate: number;        // FUTA — typically 0.6% after credit
+  suiRate: number;         // State UI — varies by state
+  wcRate: number;          // Workers' Comp — varies by industry/state
+}
+
+export interface Asset {
+  id: string;
+  name: string;            // "Espresso Machine", "Kiosk #2", etc.
+  ownership: 'owned' | 'leased';
+  costBasis: number;
+  usefulLifeYears: number;
+  depreciationMethod: 'straight-line' | 'macrs-5' | 'macrs-7' | 'macrs-15' | 'macrs-39';
+  yearAcquired: number;
+  salvageValue: number;
+}
+
+export interface InterestItem {
+  id: string;
+  lender: string;          // "SBA 7(a) Main Loan", "Equipment Financing"
+  originalBalance: number;
+  currentBalance: number;
+  interestRate: number;
+  annualInterestPaid: number;
+  purpose: string;
+}
+
+export interface LeaseItem {
+  id: string;
+  location: string;        // "Main St Location", "Airport Kiosk"
+  landlord: string;
+  monthlyRent: number;
+  leaseStartDate: string;
+  leaseEndDate: string;
+  annualEscalation: number; // percentage
+  tripleNet: boolean;
+  camCharges: number;      // Annual CAM charges
+  notes: string;
+}
+
+export interface UtilityItem {
+  id: string;
+  location: string;
+  electric: number;        // Monthly average
+  gas: number;
+  water: number;
+  trash: number;
+  internet: number;
+  other: number;
+}
+
+export interface DealBreakdowns {
+  payroll?: PayrollBreakdown;
+  assets?: Asset[];
+  interestItems?: InterestItem[];
+  leases?: LeaseItem[];
+  utilities?: UtilityItem[];
 }

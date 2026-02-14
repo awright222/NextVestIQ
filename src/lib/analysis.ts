@@ -13,6 +13,7 @@ import type {
   RealEstateMetrics,
   BusinessMetrics,
   HybridMetrics,
+  DealBreakdowns,
 } from '@/types';
 import { calcRealEstateMetrics } from './calculations/real-estate';
 import { calcBusinessMetrics } from './calculations/business';
@@ -102,6 +103,100 @@ function capRateRange(deal: RealEstateDeal | HybridDeal): { low: number; high: n
   return { low: 4, high: 7, label: 'institutional-grade' };
 }
 
+// ─── Breakdown Insights ──────────────────────────────────
+
+function buildBreakdownInsights(b?: DealBreakdowns): { section: AnalysisSection | null; riskFlags: string[] } {
+  if (!b) return { section: null, riskFlags: [] };
+
+  const lines: string[] = [];
+  const flags: string[] = [];
+
+  // Payroll insights
+  if (b.payroll && b.payroll.employees.length > 0) {
+    const totalHeadcount = b.payroll.employees.reduce((s, e) => s + e.count, 0);
+    const totalWages = b.payroll.employees.reduce((s, e) => {
+      return s + (e.wageType === 'hourly'
+        ? e.wageRate * e.hoursPerWeek * e.weeksPerYear * e.count
+        : e.wageRate * e.count);
+    }, 0);
+    const taxRate = (b.payroll.ficaRate + b.payroll.futaRate + b.payroll.suiRate + b.payroll.wcRate) / 100;
+    const totalLabor = Math.round(totalWages * (1 + taxRate));
+
+    lines.push(`📋 **Payroll**: ${totalHeadcount} employees, ${fmt(totalWages)} base wages + ${pct(taxRate * 100)} employer taxes = ${fmt(totalLabor)}/yr total labor`);
+
+    // Flag high WC rates
+    if (b.payroll.wcRate > 5) flags.push(`Workers' comp rate of ${pct(b.payroll.wcRate)} is high — verify classification codes`);
+  }
+
+  // Asset insights
+  if (b.assets && b.assets.length > 0) {
+    const owned = b.assets.filter((a) => a.ownership === 'owned');
+    const leased = b.assets.filter((a) => a.ownership === 'leased');
+    const totalBasis = owned.reduce((s, a) => s + a.costBasis, 0);
+    const totalDep = owned.reduce((s, a) => {
+      const dep = a.costBasis - a.salvageValue;
+      if (dep <= 0) return s;
+      const life = a.depreciationMethod === 'straight-line' ? a.usefulLifeYears
+        : a.depreciationMethod === 'macrs-5' ? 5 : a.depreciationMethod === 'macrs-7' ? 7
+        : a.depreciationMethod === 'macrs-15' ? 15 : 39;
+      return s + Math.round(dep / life);
+    }, 0);
+
+    lines.push(`🏭 **Assets**: ${owned.length} owned (${fmt(totalBasis)} basis, ${fmt(totalDep)}/yr depreciation)${leased.length > 0 ? `, ${leased.length} leased` : ''}`);
+
+    // Flag old assets that may need replacement
+    const currentYear = new Date().getFullYear();
+    const oldAssets = owned.filter((a) => currentYear - a.yearAcquired > (a.usefulLifeYears || 7));
+    if (oldAssets.length > 0) flags.push(`${oldAssets.length} asset${oldAssets.length > 1 ? 's' : ''} past useful life — potential replacement capex needed`);
+  }
+
+  // Lease insights
+  if (b.leases && b.leases.length > 0) {
+    const totalRent = b.leases.reduce((s, l) => s + l.monthlyRent * 12 + l.camCharges, 0);
+    lines.push(`🏢 **Leases**: ${b.leases.length} location${b.leases.length > 1 ? 's' : ''}, ${fmt(totalRent)}/yr total occupancy cost`);
+
+    const now = new Date();
+    const expiring = b.leases.filter((l) => {
+      if (!l.leaseEndDate) return false;
+      const end = new Date(l.leaseEndDate);
+      const months = (end.getTime() - now.getTime()) / (1000 * 60 * 60 * 24 * 30);
+      return months <= 18 && months > 0;
+    });
+    const expired = b.leases.filter((l) => l.leaseEndDate && new Date(l.leaseEndDate) < now);
+
+    if (expired.length > 0) flags.push(`${expired.length} lease${expired.length > 1 ? 's' : ''} already expired — immediate renegotiation risk`);
+    if (expiring.length > 0) flags.push(`${expiring.length} lease${expiring.length > 1 ? 's' : ''} expiring within 18 months — renewal terms could change costs`);
+
+    const nnnLeases = b.leases.filter((l) => l.tripleNet);
+    if (nnnLeases.length > 0) lines.push(`  └ ${nnnLeases.length} NNN lease${nnnLeases.length > 1 ? 's' : ''}: buyer responsible for taxes, insurance, and maintenance on top of rent`);
+  }
+
+  // Interest insights
+  if (b.interestItems && b.interestItems.length > 0) {
+    const totalInterest = b.interestItems.reduce((s, i) => s + i.annualInterestPaid, 0);
+    const totalDebt = b.interestItems.reduce((s, i) => s + i.currentBalance, 0);
+    lines.push(`💳 **Existing Debt**: ${b.interestItems.length} obligation${b.interestItems.length > 1 ? 's' : ''}, ${fmt(totalDebt)} outstanding, ${fmt(totalInterest)}/yr interest`);
+  }
+
+  // Utility insights
+  if (b.utilities && b.utilities.length > 0) {
+    const totalUtilities = b.utilities.reduce((s, u) =>
+      s + (u.electric + u.gas + u.water + u.trash + u.internet + u.other) * 12, 0);
+    lines.push(`⚡ **Utilities**: ${fmt(totalUtilities)}/yr across ${b.utilities.length} location${b.utilities.length > 1 ? 's' : ''}`);
+  }
+
+  if (lines.length === 0) return { section: null, riskFlags: flags };
+
+  return {
+    section: {
+      title: 'Detail Schedule Insights',
+      emoji: '📑',
+      content: lines.join('\n'),
+    },
+    riskFlags: flags,
+  };
+}
+
 // ─── Real Estate Analysis ────────────────────────────────
 
 function analyzeRealEstate(deal: Deal): DealAnalysis {
@@ -168,7 +263,12 @@ function analyzeRealEstate(deal: Deal): DealAnalysis {
         : `\n\n✅ DSCR at ${m.dscr.toFixed(2)}x gives comfortable debt coverage.`),
   });
 
-  // 4. Risk Flags
+  // 4. Breakdown insights (if available)
+  const bi = buildBreakdownInsights(deal.breakdowns);
+  if (bi.section) sections.push(bi.section);
+  riskFlags.push(...bi.riskFlags);
+
+  // 5. Risk Flags
   if (data.vacancyRate < 3) riskFlags.push('Vacancy assumption below 3% is unrealistically optimistic');
   if (expenseRatio > 0.55) riskFlags.push('High expense ratio (above 55%) compresses returns');
   if (m.dscr < 1.25 && m.dscr >= 1.0) riskFlags.push('DSCR is thin — limited margin for unexpected costs');
@@ -185,7 +285,7 @@ function analyzeRealEstate(deal: Deal): DealAnalysis {
     });
   }
 
-  // 5. Verdict
+  // 6. Verdict
   let verdict: DealAnalysis['verdict'];
   let verdictLabel: string;
   let verdictSummary: string;
@@ -301,7 +401,12 @@ function analyzeBusiness(deal: Deal): DealAnalysis {
         : `\n\n✅ ${fmt(cashAfterDebt)}/yr after salary and debt — you can sleep at night.`),
   });
 
-  // 5. Risk Flags
+  // 5. Breakdown insights (if available)
+  const bi = buildBreakdownInsights(deal.breakdowns);
+  if (bi.section) sections.push(bi.section);
+  riskFlags.push(...bi.riskFlags);
+
+  // 6. Risk Flags
   if (sdeMargin < 15) riskFlags.push('SDE margin below 15% — thin and fragile');
   if (m.sdeMultiple > range.high) riskFlags.push(`Asking multiple (${m.sdeMultiple.toFixed(1)}x) exceeds rational range (${range.low}x–${range.high}x)`);
   if (cashAfterDebt < 0) riskFlags.push('Negative cash flow after salary and debt');
@@ -318,7 +423,7 @@ function analyzeBusiness(deal: Deal): DealAnalysis {
     });
   }
 
-  // 6. Verdict
+  // 7. Verdict
   let verdict: DealAnalysis['verdict'];
   let verdictLabel: string;
   let verdictSummary: string;
@@ -420,7 +525,12 @@ function analyzeHybrid(deal: Deal): DealAnalysis {
         : `\n\n✅ DSCR of ${m.dscr.toFixed(2)}x — healthy debt coverage.`),
   });
 
-  // 4. Risk Flags
+  // 4. Breakdown insights (if available)
+  const bi = buildBreakdownInsights(deal.breakdowns);
+  if (bi.section) sections.push(bi.section);
+  riskFlags.push(...bi.riskFlags);
+
+  // 5. Risk Flags
   if (m.dscr < 1.0) riskFlags.push('Negative cash flow after debt service');
   if (m.dscr >= 1.0 && m.dscr < 1.25) riskFlags.push('Thin DSCR — limited margin');
   if (sdeMargin < 15) riskFlags.push('Business SDE margin below 15% — fragile');
@@ -439,7 +549,7 @@ function analyzeHybrid(deal: Deal): DealAnalysis {
     });
   }
 
-  // 5. Verdict
+  // 6. Verdict
   let verdict: DealAnalysis['verdict'];
   let verdictLabel: string;
   let verdictSummary: string;
