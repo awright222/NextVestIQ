@@ -109,6 +109,7 @@ src/
 │   ├── firebase.ts
 │   ├── firestore.ts           # Firestore CRUD (deals + criteria)
 │   ├── templates.ts           # 8 pre-filled deal starter templates
+│   ├── negotiation.ts         # Negotiation analysis engine
 │   └── calculations/
 │       ├── business.ts
 │       ├── hybrid.ts
@@ -177,7 +178,18 @@ Optional drill-down schedules that auto-calculate parent totals — keeps the fo
 - Expense breakdown donut chart
 - PDF deal reports with metrics, projections, amortization schedule, and notes
 - PDF comparison reports for side-by-side multi-deal analysis
+- Negotiation Brief PDF — data-backed buyer position document for sellers (see below)
 - CSV data export with full financial detail
+
+### Negotiation Brief
+- Professional PDF document to back up your offer price with data
+- **Market Valuation**: Fair value range from cap rates (RE) or SDE multiples (business)
+- **Max Supportable Price**: Reverse-engineered from DSCR constraints at current financing terms
+- **Price Sensitivity Table**: Shows cash flow, DSCR, and returns at 7 different price points (-20% to +10%)
+- **Key Negotiation Points**: Auto-identified risk factors with impact ratings (high/medium/low)
+- **Downside Stress Test**: Recession-scenario score and cash flow impact
+- **Suggested Offer Range**: Disciplined buying range derived from valuation floor and DSCR ceiling
+- Designed to send directly to a seller or broker to justify your offer
 
 ### Amortization Schedule
 - Full loan payment table with principal/interest split per period

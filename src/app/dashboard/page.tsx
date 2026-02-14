@@ -20,6 +20,7 @@ import {
   ArrowUpDown,
   Bell,
   PieChart,
+  Calculator,
 } from 'lucide-react';
 import { useAppSelector, useAppDispatch } from '@/hooks';
 import { useToast } from '@/components/ui/Toast';
@@ -32,6 +33,7 @@ import FinancingSidebar from '@/components/dashboard/FinancingSidebar';
 import DealForm from '@/components/dashboard/DealForm';
 import AlertCriteriaPanel from '@/components/dashboard/AlertCriteriaPanel';
 import PortfolioPanel from '@/components/dashboard/PortfolioPanel';
+import NapkinCalc from '@/components/dashboard/NapkinCalc';
 import Modal from '@/components/ui/Modal';
 import type { Deal } from '@/types';
 
@@ -57,6 +59,7 @@ export default function DashboardPage() {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [deletingDeal, setDeletingDeal] = useState<Deal | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [showNapkin, setShowNapkin] = useState(false);
   const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'name' | 'price'>('newest');
   const { startTour } = useTour();
 
@@ -179,6 +182,14 @@ export default function DashboardPage() {
               >
                 <BarChart3 className="h-4 w-4" />
                 Rates
+              </button>
+              <button
+                onClick={() => setShowNapkin(true)}
+                className="flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm transition hover:bg-secondary"
+                title="Quick deal screener"
+              >
+                <Calculator className="h-4 w-4" />
+                <span className="hidden sm:inline">Quick Calc</span>
               </button>
               <button
                 data-tour="new-deal"
@@ -427,6 +438,16 @@ export default function DashboardPage() {
         onClose={() => dispatch(closeModal())}
       >
         <AlertCriteriaPanel />
+      </Modal>
+
+      {/* ─── Napkin Calculator Modal ──────────── */}
+      <Modal
+        title="Quick Deal Screener"
+        isOpen={showNapkin}
+        onClose={() => setShowNapkin(false)}
+        maxWidth="max-w-md"
+      >
+        <NapkinCalc />
       </Modal>
     </div>
   );

@@ -21,6 +21,7 @@ import {
   FileSpreadsheet,
   Copy,
   FileCheck,
+  Scale,
 } from 'lucide-react';
 import { useAppSelector, useAppDispatch } from '@/hooks';
 import { toggleFavorite, addScenario, removeScenario, updateDeal, removeDeal, addDeal } from '@/store/dealsSlice';
@@ -43,7 +44,7 @@ import type { Deal, Scenario, RealEstateDeal, BusinessDeal, HybridDeal } from '@
 import { calcRealEstateMetrics, projectCashFlows } from '@/lib/calculations/real-estate';
 import { calcBusinessMetrics, projectBusinessCashFlows } from '@/lib/calculations/business';
 import { calcHybridMetrics, projectHybridCashFlows } from '@/lib/calculations/hybrid';
-import { exportDealPDF, exportDealCSV, exportLenderPacket } from '@/lib/exportPdf';
+import { exportDealPDF, exportDealCSV, exportLenderPacket, exportNegotiationBrief } from '@/lib/exportPdf';
 import { useTour, DEAL_DETAIL_TOUR, ReplayTourButton } from '@/components/providers/TourProvider';
 
 export default function DealDetailPage() {
@@ -330,6 +331,14 @@ export default function DealDetailPage() {
               >
                 <FileCheck className="h-4 w-4" />
                 <span className="hidden sm:inline">Lender Packet</span>
+              </button>
+              <button
+                onClick={() => exportNegotiationBrief(currentDeal)}
+                className="flex items-center gap-1.5 rounded-lg border border-border px-4 py-2 text-sm font-medium text-foreground transition hover:bg-secondary"
+                title="Export data-backed negotiation brief for seller"
+              >
+                <Scale className="h-4 w-4" />
+                <span className="hidden sm:inline">Negotiation Brief</span>
               </button>
               <button
                 onClick={() => exportDealCSV(currentDeal)}

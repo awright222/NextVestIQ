@@ -25,6 +25,7 @@ import { summarizeByYear, amortizationTotals, generateAmortizationSchedule } fro
 import { runSensitivity, getVariablesForDealType } from '@/lib/calculations/sensitivity';
 import { applyRecessionOverrides } from '@/lib/calculations/recession';
 import { analyzeDeal, type DealAnalysis } from '@/lib/analysis';
+import { buildNegotiationAnalysis } from '@/lib/negotiation';
 
 // ─── Formatters ──────────────────────────────────────
 
@@ -1658,6 +1659,563 @@ export function exportLenderPacket(deal: Deal) {
 
   const safeName = deal.name.replace(/[^a-zA-Z0-9]/g, '_');
   doc.save(`${safeName}_Lender_Packet.pdf`);
+}
+
+// ═══════════════════════════════════════════════════════
+// Negotiation Brief Export
+// ═══════════════════════════════════════════════════════
+
+export function exportNegotiationBrief(deal: Deal) {
+  const doc = new jsPDF();
+  const na = buildNegotiationAnalysis(deal);
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+
+  // ─── Page 1: Cover ──────────────────────────────────
+
+  let y = 30;
+
+  doc.setFontSize(28);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(...DARK);
+  doc.text('Negotiation Analysis', pageWidth / 2, y, { align: 'center' });
+  y += 10;
+
+  doc.setFontSize(14);
+  doc.setTextColor(...GRAY);
+  doc.text('Data-Backed Buyer Position Brief', pageWidth / 2, y, { align: 'center' });
+  y += 14;
+
+  doc.setFontSize(18);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(...DARK);
+  doc.text(deal.name, pageWidth / 2, y, { align: 'center' });
+  y += 8;
+
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(...GRAY);
+  doc.text(`${na.dealType} • Prepared ${dateStr()}`, pageWidth / 2, y, { align: 'center' });
+  y += 3;
+
+  doc.setDrawColor(200);
+  doc.line(40, y, pageWidth - 40, y);
+  y += 12;
+
+  // Executive price comparison box
+  const boxY = y;
+  const boxW = (pageWidth - 42) / 3;
+
+  // Asking Price
+  doc.setFillColor(254, 226, 226); // light red bg
+  doc.roundedRect(14, boxY, boxW, 30, 3, 3, 'F');
+  doc.setFontSize(8);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(...RED);
+  doc.text('ASKING PRICE', 14 + boxW / 2, boxY + 7, { align: 'center' });
+  doc.setFontSize(16);
+  doc.setFont('helvetica', 'bold');
+  doc.text(fmt(na.askingPrice), 14 + boxW / 2, boxY + 18, { align: 'center' });
+
+  // Fair Market Range
+  doc.setFillColor(219, 234, 254); // light blue bg
+  doc.roundedRect(14 + boxW + 7, boxY, boxW, 30, 3, 3, 'F');
+  doc.setFontSize(8);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(...BLUE);
+  doc.text('FAIR MARKET VALUE', 14 + boxW + 7 + boxW / 2, boxY + 7, { align: 'center' });
+  doc.setFontSize(14);
+  doc.setFont('helvetica', 'bold');
+  doc.text(`${fmt(na.valuation.low)} - ${fmt(na.valuation.high)}`, 14 + boxW + 7 + boxW / 2, boxY + 18, { align: 'center' });
+
+  // Suggested Offer
+  doc.setFillColor(220, 252, 231); // light green bg
+  doc.roundedRect(14 + (boxW + 7) * 2, boxY, boxW, 30, 3, 3, 'F');
+  doc.setFontSize(8);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(...GREEN);
+  doc.text('SUGGESTED OFFER', 14 + (boxW + 7) * 2 + boxW / 2, boxY + 7, { align: 'center' });
+  doc.setFontSize(14);
+  doc.setFont('helvetica', 'bold');
+  doc.text(`${fmt(na.priceGap.suggestedOfferLow)} - ${fmt(na.priceGap.suggestedOfferHigh)}`, 14 + (boxW + 7) * 2 + boxW / 2, boxY + 18, { align: 'center' });
+
+  y = boxY + 38;
+  doc.setTextColor(0);
+
+  // Gap summary line
+  if (na.priceGap.overpayAmount > 0) {
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(...RED);
+    doc.text(
+      `The asking price is ${fmt(na.priceGap.overpayAmount)} (${na.priceGap.overpayPercent}%) above the midpoint of fair market value.`,
+      pageWidth / 2, y, { align: 'center' }
+    );
+    y += 8;
+  } else if (na.priceGap.overpayAmount < 0) {
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(...GREEN);
+    doc.text(
+      `The asking price is ${fmt(Math.abs(na.priceGap.overpayAmount))} (${Math.abs(na.priceGap.overpayPercent)}%) below the midpoint of fair market value.`,
+      pageWidth / 2, y, { align: 'center' }
+    );
+    y += 8;
+  }
+
+  doc.setTextColor(0);
+
+  // Table of contents
+  y = ensureSpace(doc, y, 50);
+  doc.setFontSize(12);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(...DARK);
+  doc.text('Contents', 30, y);
+  y += 6;
+
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(...GRAY);
+  const contents = [
+    '1. Market Valuation Analysis',
+    '2. Maximum Supportable Price (DSCR)',
+    '3. Price Sensitivity at Different Offers',
+    '4. Key Negotiation Points',
+    '5. Downside Stress Test',
+    '6. Suggested Offer Range',
+  ];
+  for (const item of contents) {
+    doc.text(item, 34, y);
+    y += 5;
+  }
+
+  // ─── Page 2: Market Valuation ───────────────────────
+
+  doc.addPage();
+  y = 16;
+
+  doc.setFontSize(14);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(...DARK);
+  doc.text('1. Market Valuation Analysis', 14, y);
+  y += 4;
+
+  doc.setFontSize(8);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(...GRAY);
+  doc.text(`Valuation method: ${na.valuation.method}`, 14, y);
+  y += 6;
+  doc.setTextColor(0);
+
+  // Valuation detail table
+  const valRows = na.valuation.details.map((d) => {
+    const parts = d.split(': ');
+    return parts.length >= 2 ? [parts[0], parts.slice(1).join(': ')] : [d, ''];
+  });
+
+  autoTable(doc, {
+    startY: y,
+    head: [['Valuation Component', 'Value']],
+    body: valRows,
+    theme: 'striped',
+    headStyles: { fillColor: [...BLUE], fontStyle: 'bold', fontSize: 9 },
+    styles: { fontSize: 9 },
+    columnStyles: { 0: { fontStyle: 'bold', cellWidth: 70 } },
+    margin: { left: 14, right: 14 },
+  });
+
+  y = getLastTableY(doc, y + 40) + 8;
+
+  // Price comparison table
+  y = ensureSpace(doc, y, 50);
+
+  const priceCompRows: string[][] = [
+    ['Asking Price', fmt(na.askingPrice)],
+    ['Fair Market Low', fmt(na.valuation.low)],
+    ['Fair Market Mid', fmt(na.priceGap.fairValueMid)],
+    ['Fair Market High', fmt(na.valuation.high)],
+    ['Max Supportable (DSCR)', fmt(na.priceGap.maxSupportable)],
+    ['Overpay vs Mid', na.priceGap.overpayAmount >= 0 ? `+${fmt(na.priceGap.overpayAmount)} (+${na.priceGap.overpayPercent}%)` : `${fmt(na.priceGap.overpayAmount)} (${na.priceGap.overpayPercent}%)`],
+  ];
+
+  autoTable(doc, {
+    startY: y,
+    head: [['Price Comparison', '']],
+    body: priceCompRows,
+    theme: 'striped',
+    headStyles: { fillColor: [...DARK], fontStyle: 'bold', fontSize: 9 },
+    styles: { fontSize: 9 },
+    columnStyles: { 0: { fontStyle: 'bold', cellWidth: 70 }, 1: { halign: 'right' } },
+    margin: { left: 14, right: 14 },
+    didParseCell: (data) => {
+      if (data.section === 'body') {
+        // Asking price row
+        if (data.row.index === 0 && data.column.index === 1) {
+          data.cell.styles.textColor = na.priceGap.overpayAmount > 0 ? [...RED] : [...GREEN];
+          data.cell.styles.fontStyle = 'bold';
+        }
+        // Overpay row
+        if (data.row.index === 5 && data.column.index === 1) {
+          data.cell.styles.textColor = na.priceGap.overpayAmount > 0 ? [...RED] : [...GREEN];
+          data.cell.styles.fontStyle = 'bold';
+        }
+      }
+    },
+  });
+
+  y = getLastTableY(doc, y + 40) + 10;
+
+  // ─── DSCR Constraint ───────────────────────────────
+
+  y = ensureSpace(doc, y, 60);
+  doc.setFontSize(14);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(...DARK);
+  doc.text('2. Maximum Supportable Price (DSCR)', 14, y);
+  y += 4;
+
+  doc.setFontSize(8);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(...GRAY);
+  doc.text('Based on a minimum 1.25x debt service coverage ratio — the standard lender threshold.', 14, y);
+  y += 6;
+  doc.setTextColor(0);
+
+  const dscrRows: string[][] = [
+    [deal.dealType === 'business' ? 'Net Income (SDE - Salary)' : 'Net Operating Income', fmt(na.dscrConstraint.noi)],
+    ['Current Annual Debt Service', fmt(na.dscrConstraint.annualDebtService)],
+    ['Current DSCR', na.dscrConstraint.dscr === Infinity ? 'No Debt' : `${na.dscrConstraint.dscr.toFixed(2)}x`],
+    ['Required Minimum DSCR', `${na.dscrConstraint.minDSCR}x`],
+    ['Max Supportable Price', fmt(na.dscrConstraint.maxSupportablePrice)],
+  ];
+
+  autoTable(doc, {
+    startY: y,
+    head: [['DSCR-Based Price Constraint', '']],
+    body: dscrRows,
+    theme: 'striped',
+    headStyles: { fillColor: [...DARK], fontStyle: 'bold', fontSize: 9 },
+    styles: { fontSize: 9 },
+    columnStyles: { 0: { fontStyle: 'bold', cellWidth: 70 }, 1: { halign: 'right' } },
+    margin: { left: 14, right: 14 },
+    didParseCell: (data) => {
+      if (data.section === 'body' && data.row.index === 4 && data.column.index === 1) {
+        data.cell.styles.fontStyle = 'bold';
+        data.cell.styles.fontSize = 11;
+        data.cell.styles.textColor = na.dscrConstraint.maxSupportablePrice < na.askingPrice ? [...RED] : [...GREEN];
+      }
+      if (data.section === 'body' && data.row.index === 2 && data.column.index === 1) {
+        data.cell.styles.fontStyle = 'bold';
+        data.cell.styles.textColor = na.dscrConstraint.dscr >= 1.25 ? [...GREEN] : na.dscrConstraint.dscr >= 1.0 ? [...AMBER] : [...RED];
+      }
+    },
+  });
+
+  y = getLastTableY(doc, y + 40) + 6;
+
+  // Explanation
+  y = ensureSpace(doc, y, 20);
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'normal');
+  const explLines = doc.splitTextToSize(na.dscrConstraint.explanation, pageWidth - 28);
+  doc.text(explLines, 14, y);
+  y += explLines.length * 4.5 + 8;
+
+  // ─── Page 3: Price Sensitivity ──────────────────────
+
+  doc.addPage();
+  y = 16;
+
+  doc.setFontSize(14);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(...DARK);
+  doc.text('3. Price Sensitivity at Different Offers', 14, y);
+  y += 4;
+
+  doc.setFontSize(8);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(...GRAY);
+  doc.text('Shows how cash flow, DSCR, and returns change at different purchase prices.', 14, y);
+  y += 6;
+  doc.setTextColor(0);
+
+  const retLabel = na.sensitivityAtPrice[0]?.returnLabel || 'Return';
+  const sensHead = ['Price', 'vs Asking', 'Annual Cash Flow', 'DSCR', retLabel];
+  const sensBody = na.sensitivityAtPrice.map((row) => {
+    const diff = row.price - na.askingPrice;
+    const diffStr = diff === 0 ? 'Asking Price' : diff < 0 ? `${fmt(diff)} (${((diff / na.askingPrice) * 100).toFixed(0)}%)` : `+${fmt(diff)} (+${((diff / na.askingPrice) * 100).toFixed(0)}%)`;
+    return [
+      fmt(row.price),
+      diffStr,
+      fmt(row.cashFlow),
+      row.dscr === Infinity ? 'No Debt' : `${row.dscr.toFixed(2)}x`,
+      `${row.returnMetric.toFixed(1)}%`,
+    ];
+  });
+
+  autoTable(doc, {
+    startY: y,
+    head: [sensHead],
+    body: sensBody,
+    theme: 'striped',
+    headStyles: { fillColor: [...DARK], fontStyle: 'bold', fontSize: 9 },
+    styles: { fontSize: 9, halign: 'right' },
+    columnStyles: { 0: { fontStyle: 'bold', halign: 'left' }, 1: { halign: 'center' } },
+    margin: { left: 14, right: 14 },
+    didParseCell: (data) => {
+      if (data.section === 'body') {
+        const row = na.sensitivityAtPrice[data.row.index];
+        // Highlight asking price row
+        if (row && row.price === na.askingPrice) {
+          data.cell.styles.fillColor = [254, 226, 226]; // light red for asking
+          data.cell.styles.fontStyle = 'bold';
+        }
+        // Green for negative cash flow warning
+        if (data.column.index === 2 && row && row.cashFlow < 0) {
+          data.cell.styles.textColor = [...RED];
+          data.cell.styles.fontStyle = 'bold';
+        }
+        // DSCR coloring
+        if (data.column.index === 3 && row) {
+          data.cell.styles.textColor = row.dscr >= 1.25 ? [...GREEN] : row.dscr >= 1.0 ? [...AMBER] : [...RED];
+        }
+      }
+    },
+  });
+
+  y = getLastTableY(doc, y + 50) + 8;
+
+  // Interpretation
+  y = ensureSpace(doc, y, 30);
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(...DARK);
+  doc.text('Interpretation', 14, y);
+  y += 5;
+
+  const askingRow = na.sensitivityAtPrice.find((r) => r.price === na.askingPrice);
+  const bestRow = na.sensitivityAtPrice.find((r) => r.price === na.priceGap.suggestedOfferLow) || na.sensitivityAtPrice[0];
+
+  const interpLines: string[] = [];
+  if (askingRow) {
+    interpLines.push(`At the asking price of ${fmt(na.askingPrice)}:`);
+    interpLines.push(`  Cash flow: ${fmt(askingRow.cashFlow)}/yr | DSCR: ${askingRow.dscr.toFixed(2)}x | ${askingRow.returnLabel}: ${askingRow.returnMetric.toFixed(1)}%`);
+    interpLines.push('');
+  }
+  if (bestRow && bestRow.price !== na.askingPrice) {
+    interpLines.push(`At the suggested offer of ${fmt(bestRow.price)}:`);
+    interpLines.push(`  Cash flow: ${fmt(bestRow.cashFlow)}/yr | DSCR: ${bestRow.dscr.toFixed(2)}x | ${bestRow.returnLabel}: ${bestRow.returnMetric.toFixed(1)}%`);
+    interpLines.push('');
+    const cfDiff = bestRow.cashFlow - (askingRow?.cashFlow || 0);
+    interpLines.push(`Negotiating down to ${fmt(bestRow.price)} improves annual cash flow by ${fmt(cfDiff)}.`);
+  }
+
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(...DARK);
+  for (const line of interpLines) {
+    doc.text(line, 14, y);
+    y += 4.5;
+  }
+
+  // ─── Negotiation Points ─────────────────────────────
+
+  y += 4;
+  y = ensureSpace(doc, y, 60);
+
+  doc.setFontSize(14);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(...DARK);
+  doc.text('4. Key Negotiation Points', 14, y);
+  y += 4;
+
+  doc.setFontSize(8);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(...GRAY);
+  doc.text('Data-backed factors that support a lower acquisition price.', 14, y);
+  y += 6;
+  doc.setTextColor(0);
+
+  if (na.negotiationPoints.length === 0) {
+    doc.setFontSize(10);
+    doc.setTextColor(...GREEN);
+    doc.text('No significant risk factors identified — the asking price is within market range.', 14, y);
+    y += 8;
+  } else {
+    const pointRows = na.negotiationPoints.map((p) => [
+      p.impact.toUpperCase(),
+      p.title,
+      p.detail,
+    ]);
+
+    autoTable(doc, {
+      startY: y,
+      head: [['Impact', 'Factor', 'Detail']],
+      body: pointRows,
+      theme: 'striped',
+      headStyles: { fillColor: [...DARK], fontStyle: 'bold', fontSize: 9 },
+      styles: { fontSize: 8, cellPadding: 3 },
+      columnStyles: {
+        0: { cellWidth: 18, halign: 'center', fontStyle: 'bold' },
+        1: { cellWidth: 40, fontStyle: 'bold' },
+        2: { cellWidth: 'auto' },
+      },
+      margin: { left: 14, right: 14 },
+      didParseCell: (data) => {
+        if (data.section === 'body' && data.column.index === 0) {
+          const impact = na.negotiationPoints[data.row.index]?.impact;
+          data.cell.styles.textColor = impact === 'high' ? [...RED] : impact === 'medium' ? [...AMBER] : [...BLUE];
+        }
+      },
+    });
+
+    y = getLastTableY(doc, y + 50) + 8;
+  }
+
+  // ─── Stress Test ────────────────────────────────────
+
+  y = ensureSpace(doc, y, 60);
+
+  doc.setFontSize(14);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(...DARK);
+  doc.text('5. Downside Stress Test', 14, y);
+  y += 4;
+
+  doc.setFontSize(8);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(...GRAY);
+  doc.text('How the deal performs under recession-scenario assumptions (higher vacancy, lower revenue, higher rates).', 14, y);
+  y += 6;
+  doc.setTextColor(0);
+
+  const stressRows: string[][] = [
+    ['Investment Score (Base)', `${na.stressTest.baseScore} — ${na.stressTest.baseLabel}`],
+    ['Investment Score (Stressed)', `${na.stressTest.stressedScore} — ${na.stressTest.stressedLabel}`],
+    ['Score Impact', `${na.stressTest.stressedScore - na.stressTest.baseScore} points`],
+    ['Annual Cash Flow (Base)', fmt(na.stressTest.baseCashFlow)],
+    ['Annual Cash Flow (Stressed)', fmt(na.stressTest.stressedCashFlow)],
+    ['Cash Flow Impact', fmt(na.stressTest.stressedCashFlow - na.stressTest.baseCashFlow)],
+  ];
+
+  autoTable(doc, {
+    startY: y,
+    head: [['Recession Stress Test', '']],
+    body: stressRows,
+    theme: 'striped',
+    headStyles: { fillColor: [...DARK], fontStyle: 'bold', fontSize: 9 },
+    styles: { fontSize: 9 },
+    columnStyles: { 0: { fontStyle: 'bold', cellWidth: 65 }, 1: { halign: 'right' } },
+    margin: { left: 14, right: 14 },
+    didParseCell: (data) => {
+      if (data.section === 'body') {
+        // Stressed score color
+        if (data.row.index === 1 && data.column.index === 1) {
+          data.cell.styles.textColor = na.stressTest.stressedScore >= 65 ? [...GREEN] : na.stressTest.stressedScore >= 50 ? [...AMBER] : [...RED];
+          data.cell.styles.fontStyle = 'bold';
+        }
+        // Stressed cash flow color
+        if (data.row.index === 4 && data.column.index === 1) {
+          data.cell.styles.textColor = na.stressTest.stressedCashFlow >= 0 ? [...GREEN] : [...RED];
+          data.cell.styles.fontStyle = 'bold';
+        }
+        // Impact rows
+        if ((data.row.index === 2 || data.row.index === 5) && data.column.index === 1) {
+          data.cell.styles.fontStyle = 'bold';
+        }
+      }
+    },
+  });
+
+  y = getLastTableY(doc, y + 50) + 6;
+
+  // Stress narrative
+  if (na.stressTest.stressedCashFlow < 0) {
+    y = ensureSpace(doc, y, 15);
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(...RED);
+    const stressNote = `Under recession conditions, this deal produces negative cash flow of ${fmt(na.stressTest.stressedCashFlow)}/yr. This lack of downside protection justifies a lower acquisition price to build in a margin of safety.`;
+    const noteLines = doc.splitTextToSize(stressNote, pageWidth - 28);
+    doc.text(noteLines, 14, y);
+    y += noteLines.length * 4.5 + 6;
+  }
+
+  // ─── Suggested Offer Range ──────────────────────────
+
+  y = ensureSpace(doc, y, 60);
+
+  doc.setFontSize(14);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(...DARK);
+  doc.text('6. Suggested Offer Range', 14, y);
+  y += 8;
+
+  // Large offer box
+  doc.setFillColor(220, 252, 231); // light green
+  doc.roundedRect(14, y, pageWidth - 28, 28, 3, 3, 'F');
+  doc.setFontSize(20);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(...GREEN);
+  doc.text(
+    `${fmt(na.priceGap.suggestedOfferLow)}  -  ${fmt(na.priceGap.suggestedOfferHigh)}`,
+    pageWidth / 2, y + 12, { align: 'center' }
+  );
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'normal');
+  doc.text('Disciplined Buyer Range', pageWidth / 2, y + 21, { align: 'center' });
+  y += 36;
+
+  // Rationale
+  doc.setTextColor(...DARK);
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'normal');
+
+  const rationale: string[] = [];
+  rationale.push(`This range is derived from the lower half of the fair market value spectrum (${fmt(na.valuation.low)} - ${fmt(na.valuation.high)}), ` +
+    `constrained by the DSCR-supported maximum of ${fmt(na.priceGap.maxSupportable)}.`);
+  rationale.push('');
+  rationale.push('Rationale:');
+  rationale.push(`  - Market valuation (${na.valuation.method}) places fair value at ${fmt(na.valuation.low)} - ${fmt(na.valuation.high)}`);
+  rationale.push(`  - Maximum price supportable by income at 1.25x DSCR: ${fmt(na.priceGap.maxSupportable)}`);
+  if (na.negotiationPoints.length > 0) {
+    const highImpact = na.negotiationPoints.filter((p) => p.impact === 'high').length;
+    rationale.push(`  - ${na.negotiationPoints.length} risk factor${na.negotiationPoints.length !== 1 ? 's' : ''} identified (${highImpact} high impact) — justifies targeting the low end`);
+  }
+  if (na.stressTest.stressedCashFlow < 0) {
+    rationale.push('  - Recession stress test shows negative cash flow — margin of safety required');
+  }
+
+  for (const line of rationale) {
+    const rl = doc.splitTextToSize(line, pageWidth - 28);
+    doc.text(rl, 14, y);
+    y += rl.length * 4.5;
+  }
+
+  // ─── Footers ────────────────────────────────────────
+
+  const totalPages = doc.getNumberOfPages();
+  for (let i = 1; i <= totalPages; i++) {
+    doc.setPage(i);
+    doc.setFontSize(8);
+    doc.setTextColor(150);
+    doc.text(
+      `${deal.name} — Negotiation Brief • ${dateStr()} • Page ${i} of ${totalPages}`,
+      pageWidth / 2,
+      pageHeight - 10,
+      { align: 'center' }
+    );
+    doc.setFontSize(6);
+    doc.text(
+      'CONFIDENTIAL — Prepared for acquisition negotiation purposes only',
+      pageWidth / 2,
+      pageHeight - 6,
+      { align: 'center' }
+    );
+  }
+
+  const safeName = deal.name.replace(/[^a-zA-Z0-9]/g, '_');
+  doc.save(`${safeName}_Negotiation_Brief.pdf`);
 }
 
 // ═══════════════════════════════════════════════════════
