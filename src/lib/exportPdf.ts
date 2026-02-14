@@ -802,6 +802,11 @@ function renderNotes(doc: jsPDF, deal: Deal, y: number): number {
 // Footer
 // ═══════════════════════════════════════════════════════
 
+const DISCLAIMER_TEXT =
+  'Disclaimer: This report is for informational purposes only and does not constitute financial, legal, tax, or investment advice. ' +
+  'All projections and metrics are estimates based on user-provided inputs. Conduct independent due diligence and consult qualified ' +
+  'professionals before making financial decisions. DealForge assumes no liability for decisions made using this report.';
+
 function renderFooters(doc: jsPDF) {
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
@@ -818,6 +823,13 @@ function renderFooters(doc: jsPDF) {
       { align: 'center' }
     );
   }
+
+  // Disclaimer on last page
+  doc.setPage(totalPages);
+  doc.setFontSize(5.5);
+  doc.setTextColor(160);
+  const disclaimerLines = doc.splitTextToSize(DISCLAIMER_TEXT, pageWidth - 28);
+  doc.text(disclaimerLines, pageWidth / 2, pageHeight - 18, { align: 'center' });
 }
 
 // ═══════════════════════════════════════════════════════
@@ -1118,6 +1130,13 @@ export function exportComparisonPDF(deals: Deal[]) {
       { align: 'center' }
     );
   }
+
+  // Disclaimer on last page
+  doc.setPage(totalPages);
+  doc.setFontSize(5.5);
+  doc.setTextColor(160);
+  const disclaimerLines = doc.splitTextToSize(DISCLAIMER_TEXT, pageWidth - 28);
+  doc.text(disclaimerLines, pageWidth / 2, pageHeight - 18, { align: 'center' });
 
   doc.save(`DealForge_Comparison_${deals.length}_deals.pdf`);
 }
@@ -1656,6 +1675,13 @@ export function exportLenderPacket(deal: Deal) {
       { align: 'center' }
     );
   }
+
+  // Disclaimer on last page
+  doc.setPage(totalPages);
+  doc.setFontSize(5.5);
+  doc.setTextColor(160);
+  const disclaimerLines = doc.splitTextToSize(DISCLAIMER_TEXT, pageWidth - 28);
+  doc.text(disclaimerLines, pageWidth / 2, pageHeight - 22, { align: 'center' });
 
   const safeName = deal.name.replace(/[^a-zA-Z0-9]/g, '_');
   doc.save(`${safeName}_Lender_Packet.pdf`);
@@ -2213,6 +2239,13 @@ export function exportNegotiationBrief(deal: Deal) {
       { align: 'center' }
     );
   }
+
+  // Disclaimer on last page
+  doc.setPage(totalPages);
+  doc.setFontSize(5.5);
+  doc.setTextColor(160);
+  const disclaimerLines = doc.splitTextToSize(DISCLAIMER_TEXT, pageWidth - 28);
+  doc.text(disclaimerLines, pageWidth / 2, pageHeight - 22, { align: 'center' });
 
   const safeName = deal.name.replace(/[^a-zA-Z0-9]/g, '_');
   doc.save(`${safeName}_Negotiation_Brief.pdf`);

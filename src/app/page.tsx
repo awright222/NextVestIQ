@@ -315,8 +315,17 @@ export default function HomePage() {
 
       {/* ─── Footer ──────────────────────────── */}
       <footer className="border-t border-border py-8 text-center text-sm text-muted-foreground">
-        &copy; {new Date().getFullYear()} DealForge. Built for investors, by
-        investors.
+        <p>
+          &copy; {new Date().getFullYear()} DealForge. Built for investors, by investors.
+          {' · '}
+          <Link href="/terms" className="underline hover:text-foreground">Terms of Service</Link>
+        </p>
+        <p className="mx-auto mt-4 max-w-2xl text-xs text-muted-foreground/70 leading-relaxed">
+          <strong>Disclaimer:</strong> DealForge is an informational tool only and does not constitute financial, legal, tax, or investment advice.
+          All projections, metrics, and analyses are estimates based on user-provided inputs and should not be relied upon as the sole basis for any
+          purchase, sale, or investment decision. Past performance does not guarantee future results. Always conduct independent due diligence and
+          consult qualified professionals before making financial decisions. DealForge assumes no liability for decisions made using this platform.
+        </p>
       </footer>
     </div>
   );

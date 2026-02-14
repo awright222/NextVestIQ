@@ -448,6 +448,13 @@ export default function DealDetailPage() {
             {' '}@ {currentDeal.data.financing.interestRate}% / {currentDeal.data.financing.loanTermYears}yr
           </span>
         </div>
+
+        {/* ─── Disclaimer ───────────────────────────── */}
+        <p className="mt-4 text-[10px] leading-relaxed text-muted-foreground/60">
+          <strong>Disclaimer:</strong> This analysis is for informational purposes only and does not constitute financial,
+          legal, tax, or investment advice. All projections and metrics are estimates based on user-provided inputs.
+          Conduct independent due diligence and consult qualified professionals before making financial decisions.
+        </p>
       </div>
 
       {/* ─── Edit Modal ────────────────────────────── */}

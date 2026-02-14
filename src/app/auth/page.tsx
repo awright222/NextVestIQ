@@ -6,6 +6,7 @@
 
 import { useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { TrendingUp, Mail, Lock, User, AlertCircle, Loader2 } from 'lucide-react';
 import { useAuth } from '@/components/providers/AuthProvider';
 
@@ -23,6 +24,7 @@ export default function AuthPage() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [termsAccepted, setTermsAccepted] = useState(false);
 
   // If already logged in, redirect to dashboard
   if (!loading && user) {
@@ -51,6 +53,11 @@ export default function AuthPage() {
       }
 
       if (mode === 'signup') {
+        if (!termsAccepted) {
+          setError('You must agree to the Terms of Service to create an account.');
+          setSubmitting(false);
+          return;
+        }
         if (password !== confirmPassword) {
           setError('Passwords do not match.');
           setSubmitting(false);
@@ -87,6 +94,10 @@ export default function AuthPage() {
   }
 
   async function handleGoogle() {
+    if (mode === 'signup' && !termsAccepted) {
+      setError('You must agree to the Terms of Service to create an account.');
+      return;
+    }
     setError('');
     setSubmitting(true);
     try {
@@ -236,6 +247,26 @@ export default function AuthPage() {
                   Forgot password?
                 </button>
               </div>
+            )}
+
+            {/* Terms checkbox (signup only) */}
+            {mode === 'signup' && (
+              <label className="flex items-start gap-2.5 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={termsAccepted}
+                  onChange={(e) => setTermsAccepted(e.target.checked)}
+                  className="mt-0.5 h-4 w-4 shrink-0 rounded border-border accent-primary"
+                />
+                <span className="text-xs leading-relaxed text-muted-foreground">
+                  I agree to the{' '}
+                  <Link href="/terms" target="_blank" className="text-primary underline hover:no-underline">
+                    Terms of Service
+                  </Link>{' '}
+                  and acknowledge that DealForge is an informational tool only and does not
+                  provide financial, legal, or investment advice.
+                </span>
+              </label>
             )}
 
             {/* Submit */}
