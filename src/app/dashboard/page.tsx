@@ -93,6 +93,22 @@ export default function DashboardPage() {
     }
   }
 
+  function handleDuplicateDeal(deal: Deal) {
+    const clone: Deal = {
+      ...deal,
+      id: crypto.randomUUID(),
+      name: `${deal.name} (Copy)`,
+      data: JSON.parse(JSON.stringify(deal.data)),
+      breakdowns: deal.breakdowns ? JSON.parse(JSON.stringify(deal.breakdowns)) : undefined,
+      scenarios: [],
+      isFavorite: false,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    dispatch(addDeal(clone));
+    toast('Deal duplicated');
+  }
+
   // Filter deals by active tab and search query
   const filteredDeals = deals
     .filter((deal) => {
@@ -340,6 +356,7 @@ export default function DashboardPage() {
                     dispatch(openModal({ type: 'deal-form', dealId: deal.id }))
                   }
                   onDelete={() => setDeletingDeal(deal)}
+                  onDuplicate={() => handleDuplicateDeal(deal)}
                 />
               ))}
             </div>

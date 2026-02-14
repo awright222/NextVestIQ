@@ -5,11 +5,12 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { ArrowUpDown, X } from 'lucide-react';
+import { ArrowUpDown, X, Download } from 'lucide-react';
 import type { Deal, RealEstateDeal, BusinessDeal, HybridDeal } from '@/types';
 import { calcRealEstateMetrics } from '@/lib/calculations/real-estate';
 import { calcBusinessMetrics } from '@/lib/calculations/business';
 import { calcHybridMetrics } from '@/lib/calculations/hybrid';
+import { exportComparisonPDF } from '@/lib/exportPdf';
 import { useAppDispatch } from '@/hooks';
 import { toggleComparison } from '@/store/dealsSlice';
 
@@ -107,10 +108,18 @@ export default function ComparisonTable({ deals }: ComparisonTableProps) {
 
   return (
     <div className="rounded-xl border border-border bg-card">
-      <div className="border-b border-border px-5 py-3">
+      <div className="border-b border-border px-5 py-3 flex items-center justify-between">
         <h2 className="text-base font-semibold text-card-foreground">
           Deal Comparison
         </h2>
+        <button
+          onClick={() => exportComparisonPDF(deals)}
+          className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-foreground transition hover:bg-secondary"
+          title="Export comparison as PDF"
+        >
+          <Download className="h-3.5 w-3.5" />
+          Export PDF
+        </button>
       </div>
 
       <p className="mb-1 px-5 text-xs text-muted-foreground sm:hidden">← Scroll to compare →</p>

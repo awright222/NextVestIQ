@@ -21,6 +21,7 @@ import { calcRealEstateMetrics, projectCashFlows } from '@/lib/calculations/real
 import { calcBusinessMetrics, projectBusinessCashFlows } from '@/lib/calculations/business';
 import { calcHybridMetrics, projectHybridCashFlows } from '@/lib/calculations/hybrid';
 import { calcInvestmentScore, type InvestmentScore } from '@/lib/calculations/score';
+import { summarizeByYear, amortizationTotals, generateAmortizationSchedule } from '@/lib/calculations/amortization';
 import { analyzeDeal, type DealAnalysis } from '@/lib/analysis';
 
 // ─── Formatters ──────────────────────────────────────
@@ -846,6 +847,9 @@ export function exportDealPDF(deal: Deal) {
   // Scenario Comparison (new page, if scenarios exist)
   renderScenarios(doc, deal);
 
+  // Amortization Schedule (new page)
+  renderAmortization(doc, deal);
+
   // Breakdown Schedules (new page, if breakdowns exist)
   renderBreakdowns(doc, deal.breakdowns);
 
@@ -855,6 +859,264 @@ export function exportDealPDF(deal: Deal) {
   // Save
   const safeName = deal.name.replace(/[^a-zA-Z0-9]/g, '_');
   doc.save(`${safeName}_report.pdf`);
+}
+
+// ═══════════════════════════════════════════════════════
+// Amortization Schedule
+// ═══════════════════════════════════════════════════════
+
+function renderAmortization(doc: jsPDF, deal: Deal): void {
+  const financing = deal.data.financing;
+  if (!financing || financing.loanAmount <= 0) return;
+
+  const schedule = generateAmortizationSchedule(financing);
+  if (schedule.length === 0) return;
+
+  const annualRows = summarizeByYear(schedule);
+  const totals = amortizationTotals(schedule);
+
+  doc.addPage();
+  let y = 16;
+
+  doc.setFontSize(14);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(...DARK);
+  doc.text('Amortization Schedule', 14, y);
+  y += 6;
+
+  // Loan summary
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(...GRAY);
+  doc.text(
+    `Loan: ${fmt(financing.loanAmount)} | Rate: ${pct(financing.interestRate)} | Term: ${financing.loanTermYears} yrs | Amort: ${financing.amortizationYears} yrs | Monthly: ${fmt(schedule[0].payment)}`,
+    14, y
+  );
+  y += 4;
+  doc.text(
+    `Total Payments: ${fmt(totals.totalPayments)} | Total Interest: ${fmt(totals.totalInterest)} | Interest/Total: ${((totals.totalInterest / totals.totalPayments) * 100).toFixed(1)}%`,
+    14, y
+  );
+  y += 6;
+
+  doc.setTextColor(0);
+
+  // Annual table (show up to 30 years, then note truncation)
+  const displayRows = annualRows.slice(0, 30);
+  const amortBody = displayRows.map((r) => [
+    `Year ${r.year}`,
+    fmt(r.totalPayment),
+    fmt(r.totalPrincipal),
+    fmt(r.totalInterest),
+    fmt(r.endingBalance),
+    `${r.principalPercent.toFixed(0)}%`,
+  ]);
+
+  // Totals row
+  amortBody.push([
+    'Total',
+    fmt(totals.totalPayments),
+    fmt(totals.totalPrincipal),
+    fmt(totals.totalInterest),
+    '$0',
+    '',
+  ]);
+
+  autoTable(doc, {
+    startY: y,
+    head: [['Period', 'Payment', 'Principal', 'Interest', 'Balance', 'P/I Split']],
+    body: amortBody,
+    theme: 'striped',
+    headStyles: { fillColor: [...BLUE], fontStyle: 'bold', fontSize: 8 },
+    styles: { fontSize: 8, halign: 'right' },
+    columnStyles: { 0: { halign: 'left', fontStyle: 'bold' } },
+    margin: { left: 14, right: 14 },
+  });
+
+  if (annualRows.length > 30) {
+    const tableY = getLastTableY(doc, y + 60);
+    doc.setFontSize(8);
+    doc.setTextColor(...GRAY);
+    doc.text(`(${annualRows.length - 30} additional years not shown)`, 14, tableY + 4);
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+// Multi-Deal Comparison PDF Export
+// ═══════════════════════════════════════════════════════
+
+export function exportComparisonPDF(deals: Deal[]) {
+  if (deals.length < 2) return;
+
+  const doc = new jsPDF({ orientation: 'landscape' });
+  const pageWidth = doc.internal.pageSize.getWidth();
+  let y = 16;
+
+  // Title
+  doc.setFontSize(20);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(...DARK);
+  doc.text('DealForge — Deal Comparison', pageWidth / 2, y, { align: 'center' });
+  y += 8;
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(...GRAY);
+  doc.text(`${deals.length} deals compared • ${dateStr()}`, pageWidth / 2, y, { align: 'center' });
+  y += 8;
+  doc.setTextColor(0);
+
+  // Overview table
+  const overviewHead = ['', ...deals.map((d) => d.name)];
+  const overviewBody: string[][] = [
+    ['Type', ...deals.map((d) => getDealTypeLabel(d))],
+    ['Price', ...deals.map((d) => fmt(getPrice(d)))],
+    ['Score', ...deals.map((d) => {
+      const s = calcInvestmentScore(d);
+      return `${s.total} (${s.label})`;
+    })],
+  ];
+
+  autoTable(doc, {
+    startY: y,
+    head: [overviewHead],
+    body: overviewBody,
+    theme: 'striped',
+    headStyles: { fillColor: [...BLUE], fontStyle: 'bold', fontSize: 9 },
+    styles: { fontSize: 9 },
+    columnStyles: { 0: { fontStyle: 'bold', cellWidth: 35 } },
+    margin: { left: 14, right: 14 },
+  });
+
+  y = getLastTableY(doc, y + 40) + 8;
+
+  // Metrics comparison
+  const allMetrics = deals.map((d) => getMetricsRows(d));
+
+  // Find all unique metric labels across all deal types
+  const allLabels: string[] = [];
+  for (const m of allMetrics) {
+    for (const [label] of m) {
+      if (!allLabels.includes(label)) allLabels.push(label);
+    }
+  }
+
+  const metricsHead = ['Metric', ...deals.map((d) => d.name)];
+  const metricsBody = allLabels.map((label) => {
+    const row = [label];
+    for (const m of allMetrics) {
+      const found = m.find(([l]) => l === label);
+      row.push(found ? found[1] : '—');
+    }
+    return row;
+  });
+
+  y = ensureSpace(doc, y, 60);
+
+  autoTable(doc, {
+    startY: y,
+    head: [metricsHead],
+    body: metricsBody,
+    theme: 'striped',
+    headStyles: { fillColor: [...BLUE], fontStyle: 'bold', fontSize: 8 },
+    styles: { fontSize: 8 },
+    columnStyles: { 0: { fontStyle: 'bold', cellWidth: 45 } },
+    margin: { left: 14, right: 14 },
+  });
+
+  y = getLastTableY(doc, y + 80) + 8;
+
+  // Cash flow comparison (10 years)
+  y = ensureSpace(doc, y, 80);
+
+  const cfHead = ['Year', ...deals.map((d) => `${d.name} CF`)];
+  const projections = deals.map((d) =>
+    d.dealType === 'real-estate'
+      ? projectCashFlows(d.data as RealEstateDeal, 10)
+      : d.dealType === 'hybrid'
+      ? projectHybridCashFlows(d.data as HybridDeal, 10)
+      : projectBusinessCashFlows(d.data as BusinessDeal, 10)
+  );
+
+  const cfBody: string[][] = [];
+  for (let yr = 0; yr < 10; yr++) {
+    const row = [`Year ${yr + 1}`];
+    for (const proj of projections) {
+      row.push(proj[yr] ? fmt(proj[yr].cashFlow) : '—');
+    }
+    cfBody.push(row);
+  }
+
+  autoTable(doc, {
+    startY: y,
+    head: [cfHead],
+    body: cfBody,
+    theme: 'striped',
+    headStyles: { fillColor: [...BLUE], fontStyle: 'bold', fontSize: 8 },
+    styles: { fontSize: 8, halign: 'right' },
+    columnStyles: { 0: { halign: 'left', fontStyle: 'bold' } },
+    margin: { left: 14, right: 14 },
+  });
+
+  // Score breakdown per deal
+  doc.addPage();
+  y = 16;
+
+  doc.setFontSize(14);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(...DARK);
+  doc.text('Score Breakdown', 14, y);
+  y += 8;
+
+  for (const deal of deals) {
+    y = ensureSpace(doc, y, 50);
+
+    const score = calcInvestmentScore(deal);
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(...DARK);
+    const sc = scoreColor(score.total);
+    doc.text(`${deal.name}`, 14, y);
+    doc.setTextColor(...sc);
+    doc.text(`  ${score.total} — ${score.label}`, 14 + doc.getTextWidth(deal.name), y);
+    y += 5;
+
+    const scoreRows = score.breakdown.map((c) => [
+      c.name,
+      `${Math.round(c.score)}`,
+      `${(c.weight * 100).toFixed(0)}%`,
+      `${c.weighted.toFixed(1)}`,
+    ]);
+
+    autoTable(doc, {
+      startY: y,
+      head: [['Component', 'Score', 'Weight', 'Weighted']],
+      body: scoreRows,
+      theme: 'striped',
+      headStyles: { fillColor: [...BLUE], fontStyle: 'bold', fontSize: 8 },
+      styles: { fontSize: 8 },
+      columnStyles: { 0: { fontStyle: 'bold', cellWidth: 50 }, 1: { halign: 'center' }, 2: { halign: 'center' }, 3: { halign: 'center' } },
+      margin: { left: 14, right: 14 },
+    });
+
+    y = getLastTableY(doc, y + 40) + 8;
+  }
+
+  // Footers
+  const totalPages = doc.getNumberOfPages();
+  const pageHeight = doc.internal.pageSize.getHeight();
+  for (let i = 1; i <= totalPages; i++) {
+    doc.setPage(i);
+    doc.setFontSize(8);
+    doc.setTextColor(150);
+    doc.text(
+      `DealForge Comparison Report • ${dateStr()} • Page ${i} of ${totalPages}`,
+      pageWidth / 2,
+      pageHeight - 10,
+      { align: 'center' }
+    );
+  }
+
+  doc.save(`DealForge_Comparison_${deals.length}_deals.pdf`);
 }
 
 // ═══════════════════════════════════════════════════════
@@ -967,6 +1229,19 @@ export function exportDealCSV(deal: Deal) {
       lines.push(`${escapeCsv(l.location)},${escapeCsv(l.landlord)},${l.monthlyRent},${l.tripleNet ? 'NNN' : 'Gross'},${l.leaseEndDate || ''}`);
     }
     lines.push('');
+  }
+
+  // Amortization
+  if (deal.data.financing && deal.data.financing.loanAmount > 0) {
+    const amortRows = summarizeByYear(generateAmortizationSchedule(deal.data.financing));
+    if (amortRows.length > 0) {
+      lines.push('Amortization Schedule (Annual)');
+      lines.push('Year,Payment,Principal,Interest,Balance,Principal %');
+      for (const r of amortRows) {
+        lines.push(`${r.year},${Math.round(r.totalPayment)},${Math.round(r.totalPrincipal)},${Math.round(r.totalInterest)},${Math.round(r.endingBalance)},${r.principalPercent.toFixed(1)}%`);
+      }
+      lines.push('');
+    }
   }
 
   // Notes

@@ -76,8 +76,7 @@ src/
 │   │   ├── ExpenseBreakdownChart.tsx
 │   │   └── ScenarioComparisonChart.tsx
 │   ├── dashboard/
-│   │   ├── AlertCriteriaPanel.tsx
-│   │   ├── ComparisonTable.tsx
+│   │   ├── AlertCriteriaPanel.tsx│       ├── AmortizationSchedule.tsx  # Loan payment table│   │   ├── ComparisonTable.tsx
 │   │   ├── DealAnalysisPanel.tsx    # AI + rule-based deal feedback
 │   │   ├── DealCard.tsx
 │   │   ├── DealForm.tsx
@@ -116,7 +115,8 @@ src/
 │       ├── real-estate.ts
 │       ├── score.ts           # 0-100 investment score engine
 │       ├── sensitivity.ts     # Single-variable sensitivity grid
-│       └── __tests__/         # 146 unit tests
+│       ├── amortization.ts    # Full loan amortization schedule
+│       └── __tests__/         # 164 unit tests
 ├── store/
 │   ├── criteriaSlice.ts
 │   ├── dealsSlice.ts
@@ -175,7 +175,23 @@ Optional drill-down schedules that auto-calculate parent totals — keeps the fo
 ### Charts & Export
 - Cash flow projection (10-year area chart)
 - Expense breakdown donut chart
-- PDF deal reports with metrics, projections, and notes
+- PDF deal reports with metrics, projections, amortization schedule, and notes
+- PDF comparison reports for side-by-side multi-deal analysis
+- CSV data export with full financial detail
+
+### Amortization Schedule
+- Full loan payment table with principal/interest split per period
+- Annual view with expandable monthly detail for each year
+- Monthly view with cumulative interest tracking
+- Visual principal/interest split bar per year (green/red)
+- Summary cards: monthly payment, total interest, interest ratio, term
+- Supports any loan term, rate, and amortization period
+
+### Deal Duplication
+- Clone any deal as a starting point for a new analysis
+- Deep-copies all financial data and breakdowns
+- Resets scenarios, favorites, and timestamps
+- Available from both dashboard cards and deal detail page
 
 ### Live Market Data
 - **Interest rates** from FRED (Federal Reserve Economic Data) — updated weekly

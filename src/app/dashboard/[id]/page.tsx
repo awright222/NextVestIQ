@@ -19,9 +19,10 @@ import {
   TrendingUp,
   Download,
   FileSpreadsheet,
+  Copy,
 } from 'lucide-react';
 import { useAppSelector, useAppDispatch } from '@/hooks';
-import { toggleFavorite, addScenario, removeScenario, updateDeal, removeDeal } from '@/store/dealsSlice';
+import { toggleFavorite, addScenario, removeScenario, updateDeal, removeDeal, addDeal } from '@/store/dealsSlice';
 import { openModal, closeModal } from '@/store/uiSlice';
 import MetricsPanel from '@/components/dashboard/MetricsPanel';
 import ScenarioPanel from '@/components/dashboard/ScenarioPanel';
@@ -31,6 +32,7 @@ import DealForm from '@/components/dashboard/DealForm';
 import ExpenseBreakdownChart from '@/components/charts/ExpenseBreakdownChart';
 import DealAnalysisPanel from '@/components/dashboard/DealAnalysisPanel';
 import SensitivityGrid from '@/components/dashboard/SensitivityGrid';
+import AmortizationSchedule from '@/components/dashboard/AmortizationSchedule';
 import Modal from '@/components/ui/Modal';
 import type { Deal, Scenario, RealEstateDeal, BusinessDeal, HybridDeal } from '@/types';
 import { calcRealEstateMetrics, projectCashFlows } from '@/lib/calculations/real-estate';
@@ -274,6 +276,28 @@ export default function DealDetailPage() {
                 <span className="hidden sm:inline">Edit Deal</span>
               </button>
               <button
+                onClick={() => {
+                  const clone: Deal = {
+                    ...currentDeal,
+                    id: crypto.randomUUID(),
+                    name: `${currentDeal.name} (Copy)`,
+                    data: JSON.parse(JSON.stringify(currentDeal.data)),
+                    breakdowns: currentDeal.breakdowns ? JSON.parse(JSON.stringify(currentDeal.breakdowns)) : undefined,
+                    scenarios: [],
+                    isFavorite: false,
+                    createdAt: new Date().toISOString(),
+                    updatedAt: new Date().toISOString(),
+                  };
+                  dispatch(addDeal(clone));
+                  router.push(`/dashboard/${clone.id}`);
+                }}
+                className="flex items-center gap-1.5 rounded-lg border border-border px-4 py-2 text-sm font-medium text-foreground transition hover:bg-secondary"
+                title="Duplicate deal"
+              >
+                <Copy className="h-4 w-4" />
+                <span className="hidden sm:inline">Duplicate</span>
+              </button>
+              <button
                 data-tour="export-pdf"
                 onClick={() => exportDealPDF(currentDeal)}
                 className="flex items-center gap-1.5 rounded-lg border border-border px-4 py-2 text-sm font-medium text-foreground transition hover:bg-secondary"
@@ -324,7 +348,10 @@ export default function DealDetailPage() {
         <div className="mt-6 lg:w-1/2">
           <ExpenseBreakdownChart dealType={currentDeal.dealType} data={currentDeal.data} />
         </div>
-
+        {/* ─── Amortization Schedule ──────────────── */}
+        <div className="mt-6" data-tour="amortization">
+          <AmortizationSchedule financing={currentDeal.data.financing} />
+        </div>
         {/* ─── Sensitivity Analysis ───────────────── */}
         <div className="mt-6" data-tour="sensitivity">
           <SensitivityGrid deal={currentDeal} />
