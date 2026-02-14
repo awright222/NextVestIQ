@@ -7,7 +7,7 @@
 
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { Building2, Briefcase, Store } from 'lucide-react';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { useToast } from '@/components/ui/Toast';
@@ -291,6 +291,21 @@ export default function DealForm({ existingDeal, onSave, onCancel }: DealFormPro
       setBizData((prev) => ({ ...prev, financing: { ...prev.financing, loanAmount } }));
     }
   }
+
+  // Declarative auto-calc: keeps loanAmount in sync whenever price/downPayment
+  // changes from *any* source (template, edit load, loan type switch, etc.)
+  useEffect(() => {
+    const price = isRE ? reData.purchasePrice : isHybrid ? hybridData.purchasePrice : bizData.askingPrice;
+    const dp = currentData.financing.downPayment;
+    const expected = price * (1 - dp / 100);
+    if (currentData.financing.loanAmount !== expected) {
+      recalcLoanAmount(price, dp);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    reData.purchasePrice, bizData.askingPrice, hybridData.purchasePrice,
+    currentData.financing.downPayment, currentData.financing.loanType, dealType,
+  ]);
 
   // ─── Numeric input handler ───────────────────────────────
 
