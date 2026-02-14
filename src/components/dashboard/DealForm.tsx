@@ -544,28 +544,33 @@ export default function DealForm({ existingDeal, onSave, onCancel }: DealFormPro
         )}
       </div>
 
-      {/* ─── Template Picker (new deals only) ─── */}
+      {/* ─── Example Data Dropdown (new deals only) ─── */}
       {!existingDeal && (
         <div>
-          <p className="mb-2 text-xs font-medium text-muted-foreground">
-            Start from a template or enter your own numbers
-          </p>
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+          <label htmlFor="template-picker" className="mb-1 block text-sm font-medium text-foreground">
+            Quick Start
+          </label>
+          <select
+            id="template-picker"
+            className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-ring/20"
+            value=""
+            onChange={(e) => {
+              const tpl = getTemplatesForType(dealType).find((t) => t.id === e.target.value);
+              if (tpl) applyTemplate(tpl);
+            }}
+          >
+            <option value="" disabled>
+              Pre-fill with example data…
+            </option>
             {getTemplatesForType(dealType).map((tpl) => (
-              <button
-                key={tpl.id}
-                type="button"
-                onClick={() => applyTemplate(tpl)}
-                className="flex items-center gap-2 rounded-lg border border-border px-3 py-2.5 text-left text-sm transition hover:border-primary hover:bg-primary/5"
-              >
-                <span className="text-lg">{tpl.icon}</span>
-                <div className="min-w-0">
-                  <p className="truncate font-medium text-foreground">{tpl.name}</p>
-                  <p className="truncate text-[11px] text-muted-foreground">{tpl.description}</p>
-                </div>
-              </button>
+              <option key={tpl.id} value={tpl.id}>
+                {tpl.icon} {tpl.name} — {tpl.description}
+              </option>
             ))}
-          </div>
+          </select>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Loads realistic sample numbers you can adjust. Or skip this and enter your own.
+          </p>
         </div>
       )}
 
@@ -601,6 +606,7 @@ export default function DealForm({ existingDeal, onSave, onCancel }: DealFormPro
                   }}
                   placeholder="500,000"
                   error={fieldError('purchasePrice')}
+                  tooltip="The total price you are paying (or offering) for the property, including any negotiated seller credits."
                 />
                 <FormField
                   label="Closing Costs"
@@ -646,6 +652,7 @@ export default function DealForm({ existingDeal, onSave, onCancel }: DealFormPro
                   value={reData.otherIncome || ''}
                   onChange={(e) => updateRE('otherIncome', num(e))}
                   hint="Laundry, parking, etc."
+                  tooltip="Additional annual income beyond rent: coin laundry, parking fees, storage rentals, pet fees, late fees, vending, etc."
                 />
                 <FormField
                   label="Vacancy Rate"
@@ -654,6 +661,7 @@ export default function DealForm({ existingDeal, onSave, onCancel }: DealFormPro
                   value={reData.vacancyRate || ''}
                   onChange={(e) => updateRE('vacancyRate', num(e))}
                   hint="Typical: 5-10%"
+                  tooltip="The percentage of time you expect units to be unoccupied. Gross income is reduced by this rate to estimate effective income. 5% is common for strong markets; 8–10% for average."
                 />
               </div>
             )}
@@ -664,15 +672,15 @@ export default function DealForm({ existingDeal, onSave, onCancel }: DealFormPro
             <SectionHeader title="Operating Expenses (Annual)" isOpen={sections.expenses} onToggle={() => toggleSection('expenses')} />
             {sections.expenses && (
               <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
-                <FormField label="Property Tax" prefix="$" type="number" value={reData.propertyTax || ''} onChange={(e) => updateRE('propertyTax', num(e))} />
-                <FormField label="Insurance" prefix="$" type="number" value={reData.insurance || ''} onChange={(e) => updateRE('insurance', num(e))} />
+                <FormField label="Property Tax" prefix="$" type="number" value={reData.propertyTax || ''} onChange={(e) => updateRE('propertyTax', num(e))} tooltip="Annual property tax. Check your county assessor's website for the exact amount, or estimate ~1–2% of the property value." />
+                <FormField label="Insurance" prefix="$" type="number" value={reData.insurance || ''} onChange={(e) => updateRE('insurance', num(e))} tooltip="Annual property insurance premium (hazard, liability, flood if applicable). Get quotes from insurers for accuracy." />
                 <FormField label="Maintenance" prefix="$" type="number" value={reData.maintenance || ''} onChange={(e) => updateRE('maintenance', num(e))} tooltip="Annual budget for repairs, upkeep, and maintenance. A common estimate is 1–2% of the property value per year." />
                 <FormField label="Management Fee" suffix="%" type="number" value={reData.propertyManagement || ''} onChange={(e) => updateRE('propertyManagement', num(e))} hint="% of gross income" tooltip="Percentage of gross rental income paid to a property manager. Enter 0 if self-managing. Typical range: 8–12%." />
                 <div>
                   <FormField label="Utilities" prefix="$" type="number" value={reData.utilities || ''} onChange={(e) => updateRE('utilities', num(e))} hint={breakdowns.utilities?.length ? 'Auto-calculated from breakdown' : undefined} />
                   <div className="mt-1">{breakdownBtn('utilities', 'Utilities ▸')}</div>
                 </div>
-                <FormField label="Other Expenses" prefix="$" type="number" value={reData.otherExpenses || ''} onChange={(e) => updateRE('otherExpenses', num(e))} />
+                <FormField label="Other Expenses" prefix="$" type="number" value={reData.otherExpenses || ''} onChange={(e) => updateRE('otherExpenses', num(e))} tooltip="Any recurring costs not covered above: landscaping, pest control, HOA dues, legal, accounting, advertising, etc." />
               </div>
             )}
           </div>
@@ -682,9 +690,9 @@ export default function DealForm({ existingDeal, onSave, onCancel }: DealFormPro
             <SectionHeader title="Growth Assumptions" isOpen={sections.growth} onToggle={() => toggleSection('growth')} />
             {sections.growth && (
               <div className="mt-3 grid grid-cols-3 gap-3">
-                <FormField label="Rent Growth" suffix="%" type="number" step="0.1" value={reData.annualRentGrowth || ''} onChange={(e) => updateRE('annualRentGrowth', num(e))} />
-                <FormField label="Expense Growth" suffix="%" type="number" step="0.1" value={reData.annualExpenseGrowth || ''} onChange={(e) => updateRE('annualExpenseGrowth', num(e))} />
-                <FormField label="Appreciation" suffix="%" type="number" step="0.1" value={reData.annualAppreciation || ''} onChange={(e) => updateRE('annualAppreciation', num(e))} />
+                <FormField label="Rent Growth" suffix="%" type="number" step="0.1" value={reData.annualRentGrowth || ''} onChange={(e) => updateRE('annualRentGrowth', num(e))} tooltip="Expected annual rent increase. Historical average is ~3%. Conservative: 2%, aggressive: 4–5%." />
+                <FormField label="Expense Growth" suffix="%" type="number" step="0.1" value={reData.annualExpenseGrowth || ''} onChange={(e) => updateRE('annualExpenseGrowth', num(e))} tooltip="Expected annual increase in operating expenses (taxes, insurance, maintenance). Typically tracks inflation at 2–3%." />
+                <FormField label="Appreciation" suffix="%" type="number" step="0.1" value={reData.annualAppreciation || ''} onChange={(e) => updateRE('annualAppreciation', num(e))} tooltip="Expected annual increase in property value. Used to estimate future equity and exit value. Historical US average is ~3–4%." />
               </div>
             )}
           </div>
@@ -714,6 +722,7 @@ export default function DealForm({ existingDeal, onSave, onCancel }: DealFormPro
                   }}
                   placeholder="350,000"
                   error={fieldError('askingPrice')}
+                  tooltip="The seller's listed price for the business. Your actual offer may differ — this is the starting point for analysis."
                 />
                 <FormField
                   label="Closing Costs"
@@ -721,6 +730,7 @@ export default function DealForm({ existingDeal, onSave, onCancel }: DealFormPro
                   type="number"
                   value={bizData.closingCosts || ''}
                   onChange={(e) => updateBiz('closingCosts', num(e))}
+                  tooltip="Transaction costs: attorney fees, due diligence, escrow, accountant, business valuation, licensing transfer fees, etc."
                 />
               </div>
             )}
@@ -761,7 +771,7 @@ export default function DealForm({ existingDeal, onSave, onCancel }: DealFormPro
                   <FormField label="Interest" prefix="$" type="number" value={bizData.interest || ''} onChange={(e) => updateBiz('interest', num(e))} hint={breakdowns.interestItems?.length ? 'Auto-calculated from debt schedule' : undefined} tooltip="Annual interest expense on the seller's existing debt. Added back for EBITDA because your financing will be different. Not your future loan interest — that's calculated in the Financing section." />
                   <div className="mt-1">{breakdownBtn('interest', 'Debt Schedule ▸')}</div>
                 </div>
-                <FormField label="Taxes" prefix="$" type="number" value={bizData.taxes || ''} onChange={(e) => updateBiz('taxes', num(e))} />
+                <FormField label="Taxes" prefix="$" type="number" value={bizData.taxes || ''} onChange={(e) => updateBiz('taxes', num(e))} tooltip="The seller's annual income/business taxes. Added back for EBITDA since your tax situation will be different." />
                 <FormField label="Other Add-Backs" prefix="$" type="number" value={bizData.otherAddBacks || ''} onChange={(e) => updateBiz('otherAddBacks', num(e))} hint="One-time / discretionary" tooltip="Other non-recurring or discretionary expenses the current owner runs through the business: personal vehicle, family cell plans, one-time legal fees, etc." />
               </div>
             )}
@@ -772,8 +782,8 @@ export default function DealForm({ existingDeal, onSave, onCancel }: DealFormPro
             <SectionHeader title="Growth Assumptions" isOpen={sections.growth} onToggle={() => toggleSection('growth')} />
             {sections.growth && (
               <div className="mt-3 grid grid-cols-2 gap-3">
-                <FormField label="Revenue Growth" suffix="%" type="number" step="0.1" value={bizData.annualRevenueGrowth || ''} onChange={(e) => updateBiz('annualRevenueGrowth', num(e))} />
-                <FormField label="Expense Growth" suffix="%" type="number" step="0.1" value={bizData.annualExpenseGrowth || ''} onChange={(e) => updateBiz('annualExpenseGrowth', num(e))} />
+                <FormField label="Revenue Growth" suffix="%" type="number" step="0.1" value={bizData.annualRevenueGrowth || ''} onChange={(e) => updateBiz('annualRevenueGrowth', num(e))} tooltip="Expected annual revenue growth rate. Base this on historical trends, market size, and your growth plans." />
+                <FormField label="Expense Growth" suffix="%" type="number" step="0.1" value={bizData.annualExpenseGrowth || ''} onChange={(e) => updateBiz('annualExpenseGrowth', num(e))} tooltip="Expected annual increase in operating costs. Typically 2–3% for inflation, higher if planning to scale staff or marketing." />
               </div>
             )}
           </div>
@@ -811,6 +821,7 @@ export default function DealForm({ existingDeal, onSave, onCancel }: DealFormPro
                   value={hybridData.propertyValue || ''}
                   onChange={(e) => updateHybrid('propertyValue', num(e))}
                   hint="Allocated to real estate"
+                  tooltip="The portion of the purchase price allocated to the real property (land + building). Used for depreciation calculations and property-specific metrics."
                 />
                 <FormField
                   label="Business Value"
@@ -819,9 +830,10 @@ export default function DealForm({ existingDeal, onSave, onCancel }: DealFormPro
                   value={hybridData.businessValue || ''}
                   onChange={(e) => updateHybrid('businessValue', num(e))}
                   hint="Allocated to goodwill / business"
+                  tooltip="The portion allocated to the business itself (goodwill, brand, customer base, equipment). Property Value + Business Value should roughly equal the Purchase Price."
                 />
-                <FormField label="Closing Costs" prefix="$" type="number" value={hybridData.closingCosts || ''} onChange={(e) => updateHybrid('closingCosts', num(e))} />
-                <FormField label="Rehab / Renovation" prefix="$" type="number" value={hybridData.rehabCosts || ''} onChange={(e) => updateHybrid('rehabCosts', num(e))} />
+                <FormField label="Closing Costs" prefix="$" type="number" value={hybridData.closingCosts || ''} onChange={(e) => updateHybrid('closingCosts', num(e))} tooltip="All transaction costs: attorney fees, inspections, due diligence, title, lender fees, licensing transfers, etc." />
+                <FormField label="Rehab / Renovation" prefix="$" type="number" value={hybridData.rehabCosts || ''} onChange={(e) => updateHybrid('rehabCosts', num(e))} tooltip="Estimated cost of building repairs, equipment upgrades, or improvements needed before operating at full capacity." />
               </div>
             )}
           </div>
@@ -831,9 +843,9 @@ export default function DealForm({ existingDeal, onSave, onCancel }: DealFormPro
             <SectionHeader title="Property Income (Annual)" isOpen={sections.income} onToggle={() => toggleSection('income')} />
             {sections.income && (
               <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
-                <FormField label="Gross Rental Income" prefix="$" type="number" value={hybridData.grossRentalIncome || ''} onChange={(e) => updateHybrid('grossRentalIncome', num(e))} hint="If part of building is separately rented" />
-                <FormField label="Other Property Income" prefix="$" type="number" value={hybridData.otherPropertyIncome || ''} onChange={(e) => updateHybrid('otherPropertyIncome', num(e))} hint="Parking, storage, etc." />
-                <FormField label="Vacancy Rate" suffix="%" type="number" value={hybridData.vacancyRate || ''} onChange={(e) => updateHybrid('vacancyRate', num(e))} hint="For rental portion" />
+                <FormField label="Gross Rental Income" prefix="$" type="number" value={hybridData.grossRentalIncome || ''} onChange={(e) => updateHybrid('grossRentalIncome', num(e))} hint="If part of building is separately rented" tooltip="Annual rent from any separately leased space in the building (e.g. an apartment above a shop, or a rented-out unit). Enter 0 if you occupy the entire property for the business." />
+                <FormField label="Other Property Income" prefix="$" type="number" value={hybridData.otherPropertyIncome || ''} onChange={(e) => updateHybrid('otherPropertyIncome', num(e))} hint="Parking, storage, etc." tooltip="Additional annual property income beyond rent: parking fees, storage rentals, sign/billboard income, etc." />
+                <FormField label="Vacancy Rate" suffix="%" type="number" value={hybridData.vacancyRate || ''} onChange={(e) => updateHybrid('vacancyRate', num(e))} hint="For rental portion" tooltip="Expected vacancy for the separately rented portion of the building. Enter 0% if there is no rental component." />
               </div>
             )}
           </div>
@@ -843,15 +855,15 @@ export default function DealForm({ existingDeal, onSave, onCancel }: DealFormPro
             <SectionHeader title="Property Expenses (Annual)" isOpen={sections.expenses} onToggle={() => toggleSection('expenses')} />
             {sections.expenses && (
               <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
-                <FormField label="Property Tax" prefix="$" type="number" value={hybridData.propertyTax || ''} onChange={(e) => updateHybrid('propertyTax', num(e))} />
-                <FormField label="Insurance" prefix="$" type="number" value={hybridData.insurance || ''} onChange={(e) => updateHybrid('insurance', num(e))} />
-                <FormField label="Maintenance" prefix="$" type="number" value={hybridData.maintenance || ''} onChange={(e) => updateHybrid('maintenance', num(e))} />
-                <FormField label="Management Fee" suffix="%" type="number" value={hybridData.propertyManagement || ''} onChange={(e) => updateHybrid('propertyManagement', num(e))} hint="% of property gross income" />
+                <FormField label="Property Tax" prefix="$" type="number" value={hybridData.propertyTax || ''} onChange={(e) => updateHybrid('propertyTax', num(e))} tooltip="Annual property tax on the real estate portion. Check your county assessor's website or estimate ~1–2% of property value." />
+                <FormField label="Insurance" prefix="$" type="number" value={hybridData.insurance || ''} onChange={(e) => updateHybrid('insurance', num(e))} tooltip="Annual property insurance premium. For hybrid deals this covers the building — business liability insurance goes in operating expenses." />
+                <FormField label="Maintenance" prefix="$" type="number" value={hybridData.maintenance || ''} onChange={(e) => updateHybrid('maintenance', num(e))} tooltip="Annual budget for building repairs and upkeep. A common estimate is 1–2% of the property value per year." />
+                <FormField label="Management Fee" suffix="%" type="number" value={hybridData.propertyManagement || ''} onChange={(e) => updateHybrid('propertyManagement', num(e))} hint="% of property gross income" tooltip="Percentage of property gross income paid to a property manager for the rental portion. Enter 0 if you self-manage or there's no rental." />
                 <div>
                   <FormField label="Utilities" prefix="$" type="number" value={hybridData.utilities || ''} onChange={(e) => updateHybrid('utilities', num(e))} hint={breakdowns.utilities?.length ? 'Auto-calculated from breakdown' : undefined} />
                   <div className="mt-1">{breakdownBtn('utilities', 'Utilities ▸')}</div>
                 </div>
-                <FormField label="Other Property Expenses" prefix="$" type="number" value={hybridData.otherPropertyExpenses || ''} onChange={(e) => updateHybrid('otherPropertyExpenses', num(e))} />
+                <FormField label="Other Property Expenses" prefix="$" type="number" value={hybridData.otherPropertyExpenses || ''} onChange={(e) => updateHybrid('otherPropertyExpenses', num(e))} tooltip="Other recurring property costs: landscaping, pest control, HOA, common-area maintenance, etc." />
               </div>
             )}
           </div>
@@ -886,8 +898,8 @@ export default function DealForm({ existingDeal, onSave, onCancel }: DealFormPro
                 <FormField label="Interest" prefix="$" type="number" value={hybridData.interest || ''} onChange={(e) => updateHybrid('interest', num(e))} hint={breakdowns.interestItems?.length ? 'Auto-calculated from debt schedule' : undefined} tooltip="The seller's current annual interest expense. Added back for EBITDA because your financing will differ." />
                 <div className="mt-1">{breakdownBtn('interest', 'Debt Schedule ▸')}</div>
               </div>
-              <FormField label="Taxes" prefix="$" type="number" value={hybridData.taxes || ''} onChange={(e) => updateHybrid('taxes', num(e))} />
-              <FormField label="Other Add-Backs" prefix="$" type="number" value={hybridData.otherAddBacks || ''} onChange={(e) => updateHybrid('otherAddBacks', num(e))} />
+              <FormField label="Taxes" prefix="$" type="number" value={hybridData.taxes || ''} onChange={(e) => updateHybrid('taxes', num(e))} tooltip="The seller's annual income/business taxes. Added back for EBITDA since your tax situation will be different." />
+              <FormField label="Other Add-Backs" prefix="$" type="number" value={hybridData.otherAddBacks || ''} onChange={(e) => updateHybrid('otherAddBacks', num(e))} tooltip="Other non-recurring or personal expenses the owner runs through the business: personal vehicle, family cell plans, one-time legal fees, etc." />
             </div>
           </div>
 
@@ -896,10 +908,10 @@ export default function DealForm({ existingDeal, onSave, onCancel }: DealFormPro
             <SectionHeader title="Growth Assumptions" isOpen={sections.growth} onToggle={() => toggleSection('growth')} />
             {sections.growth && (
               <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
-                <FormField label="Revenue Growth" suffix="%" type="number" step="0.1" value={hybridData.annualRevenueGrowth || ''} onChange={(e) => updateHybrid('annualRevenueGrowth', num(e))} />
-                <FormField label="Rent Growth" suffix="%" type="number" step="0.1" value={hybridData.annualRentGrowth || ''} onChange={(e) => updateHybrid('annualRentGrowth', num(e))} />
-                <FormField label="Expense Growth" suffix="%" type="number" step="0.1" value={hybridData.annualExpenseGrowth || ''} onChange={(e) => updateHybrid('annualExpenseGrowth', num(e))} />
-                <FormField label="Appreciation" suffix="%" type="number" step="0.1" value={hybridData.annualAppreciation || ''} onChange={(e) => updateHybrid('annualAppreciation', num(e))} />
+                <FormField label="Revenue Growth" suffix="%" type="number" step="0.1" value={hybridData.annualRevenueGrowth || ''} onChange={(e) => updateHybrid('annualRevenueGrowth', num(e))} tooltip="Expected annual growth in business revenue." />
+                <FormField label="Rent Growth" suffix="%" type="number" step="0.1" value={hybridData.annualRentGrowth || ''} onChange={(e) => updateHybrid('annualRentGrowth', num(e))} tooltip="Expected annual increase in rental income for the property portion." />
+                <FormField label="Expense Growth" suffix="%" type="number" step="0.1" value={hybridData.annualExpenseGrowth || ''} onChange={(e) => updateHybrid('annualExpenseGrowth', num(e))} tooltip="Expected annual increase in both property and business operating costs. Typically 2–3% for inflation." />
+                <FormField label="Appreciation" suffix="%" type="number" step="0.1" value={hybridData.annualAppreciation || ''} onChange={(e) => updateHybrid('annualAppreciation', num(e))} tooltip="Expected annual increase in property value. Used to estimate future equity and exit value." />
               </div>
             )}
           </div>
@@ -933,6 +945,7 @@ export default function DealForm({ existingDeal, onSave, onCancel }: DealFormPro
                   const price = isRE ? reData.purchasePrice : isHybrid ? hybridData.purchasePrice : bizData.askingPrice;
                   recalcLoanAmount(price, dp);
                 }}
+                tooltip="Percentage of the purchase price you pay in cash upfront. The rest is financed. Typical: 10% for SBA, 20–25% for conventional."
               />
               <FormField
                 label="Interest Rate"
@@ -941,6 +954,7 @@ export default function DealForm({ existingDeal, onSave, onCancel }: DealFormPro
                 step="0.125"
                 value={financing.interestRate || ''}
                 onChange={(e) => updateFinancing('interestRate', num(e))}
+                tooltip="Annual interest rate on the loan. This is automatically filled when you select a loan type, but you can override it with your actual rate."
               />
               <FormField
                 label="Loan Amount"
@@ -949,6 +963,7 @@ export default function DealForm({ existingDeal, onSave, onCancel }: DealFormPro
                 value={financing.loanAmount || ''}
                 onChange={(e) => updateFinancing('loanAmount', num(e))}
                 hint="Auto-calculated from price & down payment"
+                tooltip="Total amount borrowed. Automatically calculated as Purchase Price × (1 – Down Payment %). You can override this manually if needed."
               />
               <FormField
                 label="Loan Term (years)"
