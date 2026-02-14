@@ -17,6 +17,7 @@ import {
   Pencil,
   Trash2,
   TrendingUp,
+  Download,
 } from 'lucide-react';
 import { useAppSelector, useAppDispatch } from '@/hooks';
 import { toggleFavorite, addScenario, removeScenario, updateDeal, removeDeal } from '@/store/dealsSlice';
@@ -26,11 +27,13 @@ import ScenarioPanel from '@/components/dashboard/ScenarioPanel';
 import CashFlowChart from '@/components/charts/CashFlowChart';
 import ScenarioComparisonChart from '@/components/charts/ScenarioComparisonChart';
 import DealForm from '@/components/dashboard/DealForm';
+import ExpenseBreakdownChart from '@/components/charts/ExpenseBreakdownChart';
 import Modal from '@/components/ui/Modal';
 import type { Deal, Scenario, RealEstateDeal, BusinessDeal, HybridDeal } from '@/types';
 import { calcRealEstateMetrics, projectCashFlows } from '@/lib/calculations/real-estate';
 import { calcBusinessMetrics, projectBusinessCashFlows } from '@/lib/calculations/business';
 import { calcHybridMetrics, projectHybridCashFlows } from '@/lib/calculations/hybrid';
+import { exportDealPDF } from '@/lib/exportPdf';
 
 export default function DealDetailPage() {
   const params = useParams();
@@ -199,9 +202,9 @@ export default function DealDetailPage() {
   return (
     <div className="min-h-screen bg-background">
       {/* ─── Header ─────────────────────────────── */}
-      <header className="border-b border-border bg-card px-6 py-4">
+      <header className="border-b border-border bg-card px-4 py-3 sm:px-6 sm:py-4">
         <div className="mx-auto max-w-7xl">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-3">
               <button
                 onClick={() => router.push('/dashboard')}
@@ -250,12 +253,22 @@ export default function DealDetailPage() {
                   }`}
                 />
               </button>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
               <button
                 onClick={() => dispatch(openModal({ type: 'deal-form', dealId: currentDeal.id }))}
                 className="flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition hover:opacity-90"
               >
                 <Pencil className="h-4 w-4" />
                 Edit Deal
+              </button>
+              <button
+                onClick={() => exportDealPDF(currentDeal)}
+                className="flex items-center gap-1.5 rounded-lg border border-border px-4 py-2 text-sm font-medium text-foreground transition hover:bg-secondary"
+                title="Export PDF report"
+              >
+                <Download className="h-4 w-4" />
+                Export PDF
               </button>
               <button
                 onClick={() => setShowDeleteConfirm(true)}
@@ -269,7 +282,7 @@ export default function DealDetailPage() {
         </div>
       </header>
 
-      <div className="mx-auto max-w-7xl px-6 py-6">
+      <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 sm:py-6">
         {/* ─── Metrics ─────────────────────────────── */}
         <MetricsPanel dealType={currentDeal.dealType} data={currentDeal.data} />
 
@@ -282,6 +295,11 @@ export default function DealDetailPage() {
               thirdMetricLabel={isRE ? 'Cap Rate %' : isHybrid ? 'Cap Rate %' : 'SDE $'}
             />
           )}
+        </div>
+
+        {/* ─── Expense Breakdown ───────────────────── */}
+        <div className="mt-6 lg:w-1/2">
+          <ExpenseBreakdownChart dealType={currentDeal.dealType} data={currentDeal.data} />
         </div>
 
         {/* ─── Scenario Builder ────────────────────── */}

@@ -10,6 +10,7 @@
 import { useState, useCallback } from 'react';
 import { Building2, Briefcase, Store } from 'lucide-react';
 import { useAuth } from '@/components/providers/AuthProvider';
+import { useToast } from '@/components/ui/Toast';
 import FormField from '@/components/ui/FormField';
 import SelectField from '@/components/ui/SelectField';
 import SectionHeader from '@/components/ui/SectionHeader';
@@ -247,10 +248,90 @@ export default function DealForm({ existingDeal, onSave, onCancel }: DealFormPro
     return isNaN(v) ? 0 : v;
   }
 
+  // ─── Validation ──────────────────────────────────────────
+
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const { toast } = useToast();
+
+  function validate(): boolean {
+    const errs: Record<string, string> = {};
+
+    // Name
+    if (!name.trim()) {
+      errs.name = 'Deal name is required';
+    }
+
+    // Price
+    if (isRE && reData.purchasePrice <= 0) {
+      errs.purchasePrice = 'Purchase price must be greater than 0';
+    }
+    if (isHybrid && hybridData.purchasePrice <= 0) {
+      errs.purchasePrice = 'Purchase price must be greater than 0';
+    }
+    if (!isRE && !isHybrid && bizData.askingPrice <= 0) {
+      errs.askingPrice = 'Asking price must be greater than 0';
+    }
+
+    // Income
+    if (isRE && reData.grossRentalIncome <= 0) {
+      errs.grossRentalIncome = 'Rental income is required';
+    }
+    if (!isRE && !isHybrid && bizData.annualRevenue <= 0) {
+      errs.annualRevenue = 'Annual revenue is required';
+    }
+    if (isHybrid && hybridData.annualRevenue <= 0 && hybridData.grossRentalIncome <= 0) {
+      errs.annualRevenue = 'Enter revenue or rental income';
+    }
+
+    // Percentage ranges
+    const pctFields: Array<{ key: string; val: number; label: string }> = [];
+    if (isRE) {
+      pctFields.push(
+        { key: 'vacancyRate', val: reData.vacancyRate, label: 'Vacancy rate' },
+        { key: 'propertyManagement', val: reData.propertyManagement, label: 'Management %' }
+      );
+    }
+    if (isHybrid) {
+      pctFields.push(
+        { key: 'vacancyRate', val: hybridData.vacancyRate, label: 'Vacancy rate' },
+        { key: 'propertyManagement', val: hybridData.propertyManagement, label: 'Management %' }
+      );
+    }
+
+    // Financing
+    const fin = currentData.financing;
+    if (fin.downPayment < 0 || fin.downPayment > 100) {
+      errs.downPayment = 'Down payment must be 0–100%';
+    }
+    if (fin.interestRate < 0 || fin.interestRate > 30) {
+      errs.interestRate = 'Interest rate must be 0–30%';
+    }
+    if (fin.amortizationYears <= 0 || fin.amortizationYears > 50) {
+      errs.amortizationYears = 'Amortization must be 1–50 years';
+    }
+
+    for (const p of pctFields) {
+      if (p.val < 0 || p.val > 100) {
+        errs[p.key] = `${p.label} must be 0–100%`;
+      }
+    }
+
+    setErrors(errs);
+    return Object.keys(errs).length === 0;
+  }
+
+  /** Get error message for a field, or undefined */
+  const fieldError = (key: string) => errors[key];
+
   // ─── Submit ──────────────────────────────────────────────
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+
+    if (!validate()) {
+      toast('Please fix the errors below', 'error');
+      return;
+    }
 
     const now = new Date().toISOString();
     const deal: Deal = {
@@ -334,7 +415,8 @@ export default function DealForm({ existingDeal, onSave, onCancel }: DealFormPro
         label="Deal Name"
         placeholder={isRE ? 'e.g. 123 Main St Duplex' : isHybrid ? 'e.g. Main St Laundromat' : 'e.g. Joe\'s Auto Shop'}
         value={name}
-        onChange={(e) => setName(e.target.value)}
+        onChange={(e) => { setName(e.target.value); setErrors((p) => ({ ...p, name: '' })); }}
+        error={fieldError('name')}
       />
 
       {/* ═══════════════════════════════════════ */}
@@ -356,8 +438,10 @@ export default function DealForm({ existingDeal, onSave, onCancel }: DealFormPro
                     const v = num(e);
                     updateRE('purchasePrice', v);
                     recalcLoanAmount(v, reData.financing.downPayment);
+                    setErrors((p) => ({ ...p, purchasePrice: '' }));
                   }}
                   placeholder="500,000"
+                  error={fieldError('purchasePrice')}
                 />
                 <FormField
                   label="Closing Costs"
@@ -389,8 +473,9 @@ export default function DealForm({ existingDeal, onSave, onCancel }: DealFormPro
                   prefix="$"
                   type="number"
                   value={reData.grossRentalIncome || ''}
-                  onChange={(e) => updateRE('grossRentalIncome', num(e))}
+                  onChange={(e) => { updateRE('grossRentalIncome', num(e)); setErrors((p) => ({ ...p, grossRentalIncome: '' })); }}
                   hint="Total annual rent"
+                  error={fieldError('grossRentalIncome')}
                 />
                 <FormField
                   label="Other Income"
@@ -460,8 +545,10 @@ export default function DealForm({ existingDeal, onSave, onCancel }: DealFormPro
                     const v = num(e);
                     updateBiz('askingPrice', v);
                     recalcLoanAmount(v, bizData.financing.downPayment);
+                    setErrors((p) => ({ ...p, askingPrice: '' }));
                   }}
                   placeholder="350,000"
+                  error={fieldError('askingPrice')}
                 />
                 <FormField
                   label="Closing Costs"
@@ -479,7 +566,7 @@ export default function DealForm({ existingDeal, onSave, onCancel }: DealFormPro
             <SectionHeader title="Revenue & Expenses (Annual)" isOpen={sections.income} onToggle={() => toggleSection('income')} />
             {sections.income && (
               <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
-                <FormField label="Annual Revenue" prefix="$" type="number" value={bizData.annualRevenue || ''} onChange={(e) => updateBiz('annualRevenue', num(e))} />
+                <FormField label="Annual Revenue" prefix="$" type="number" value={bizData.annualRevenue || ''} onChange={(e) => { updateBiz('annualRevenue', num(e)); setErrors((p) => ({ ...p, annualRevenue: '' })); }} error={fieldError('annualRevenue')} />
                 <FormField label="Cost of Goods" prefix="$" type="number" value={bizData.costOfGoods || ''} onChange={(e) => updateBiz('costOfGoods', num(e))} />
                 <FormField label="Operating Expenses" prefix="$" type="number" value={bizData.operatingExpenses || ''} onChange={(e) => updateBiz('operatingExpenses', num(e))} />
               </div>
@@ -533,8 +620,10 @@ export default function DealForm({ existingDeal, onSave, onCancel }: DealFormPro
                     const v = num(e);
                     updateHybrid('purchasePrice', v);
                     recalcLoanAmount(v, hybridData.financing.downPayment);
+                    setErrors((p) => ({ ...p, purchasePrice: '' }));
                   }}
                   placeholder="750,000"
+                  error={fieldError('purchasePrice')}
                 />
                 <FormField
                   label="Property Value"

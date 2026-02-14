@@ -55,8 +55,8 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-background">
       {/* ─── Hero ────────────────────────────── */}
-      <section className="mx-auto max-w-4xl px-6 py-24 text-center">
-        <h1 className="text-5xl font-extrabold leading-tight tracking-tight text-foreground">
+      <section className="mx-auto max-w-4xl px-4 py-12 text-center sm:px-6 sm:py-24">
+        <h1 className="text-3xl font-extrabold leading-tight tracking-tight text-foreground sm:text-5xl">
           Smarter Investment
           <br />
           <span className="text-primary">Analysis in Seconds</span>
@@ -83,7 +83,7 @@ export default function HomePage() {
       </section>
 
       {/* ─── Features ────────────────────────── */}
-      <section id="features" className="mx-auto max-w-6xl px-6 pb-24">
+      <section id="features" className="mx-auto max-w-6xl px-4 pb-16 sm:px-6 sm:pb-24">
         <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
           {features.map((f) => (
             <div

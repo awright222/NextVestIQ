@@ -21,6 +21,7 @@ import {
   Bell,
 } from 'lucide-react';
 import { useAppSelector, useAppDispatch } from '@/hooks';
+import { useToast } from '@/components/ui/Toast';
 import { setDashboardTab, openModal, closeModal, setSidebarOpen } from '@/store/uiSlice';
 import { toggleComparison, toggleFavorite, addDeal, updateDeal, removeDeal } from '@/store/dealsSlice';
 import DealCard from '@/components/dashboard/DealCard';
@@ -41,6 +42,7 @@ const tabs = [
 
 export default function DashboardPage() {
   const dispatch = useAppDispatch();
+  const { toast } = useToast();
   const deals = useAppSelector((s) => s.deals.items);
   const isLoading = useAppSelector((s) => s.deals.loading);
   const comparisonIds = useAppSelector((s) => s.deals.comparisonIds);
@@ -62,8 +64,10 @@ export default function DashboardPage() {
   function handleSaveDeal(deal: Deal) {
     if (editingDeal) {
       dispatch(updateDeal(deal));
+      toast('Deal updated successfully');
     } else {
       dispatch(addDeal(deal));
+      toast('Deal created successfully');
     }
     dispatch(closeModal());
   }
@@ -72,6 +76,7 @@ export default function DashboardPage() {
     if (deletingDeal) {
       dispatch(removeDeal(deletingDeal.id));
       setDeletingDeal(null);
+      toast('Deal deleted', 'info');
     }
   }
 
@@ -123,7 +128,7 @@ export default function DashboardPage() {
         <header className="border-b border-border bg-card px-6 py-4">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-bold text-foreground">My Deals</h2>
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
               <button
                 onClick={() => dispatch(openModal({ type: 'alert-criteria' }))}
                 className="flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm transition hover:bg-secondary"
@@ -159,7 +164,7 @@ export default function DashboardPage() {
           <div className="mb-6 space-y-4">
             {/* Row 1: Tabs + View controls */}
             <div className="flex items-center justify-between">
-              <div className="flex gap-1 rounded-lg bg-secondary p-1">
+              <div className="flex gap-1 overflow-x-auto rounded-lg bg-secondary p-1 scrollbar-hide">
                 {tabs.map((tab) => (
                   <button
                     key={tab.key}
@@ -203,7 +208,7 @@ export default function DashboardPage() {
             </div>
 
             {/* Row 2: Search + Sort */}
-            <div className="flex items-center gap-3">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <input

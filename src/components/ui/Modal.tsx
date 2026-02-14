@@ -46,7 +46,7 @@ export default function Modal({
     <div
       ref={overlayRef}
       onClick={handleOverlayClick}
-      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/50 p-4 pt-16 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/50 p-2 pt-8 sm:p-4 sm:pt-16 backdrop-blur-sm"
     >
       <div
         className={`w-full ${maxWidth} rounded-xl border border-border bg-card shadow-2xl`}
