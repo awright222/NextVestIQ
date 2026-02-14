@@ -18,6 +18,7 @@ import {
   Trash2,
   TrendingUp,
   Download,
+  FileSpreadsheet,
 } from 'lucide-react';
 import { useAppSelector, useAppDispatch } from '@/hooks';
 import { toggleFavorite, addScenario, removeScenario, updateDeal, removeDeal } from '@/store/dealsSlice';
@@ -35,7 +36,7 @@ import type { Deal, Scenario, RealEstateDeal, BusinessDeal, HybridDeal } from '@
 import { calcRealEstateMetrics, projectCashFlows } from '@/lib/calculations/real-estate';
 import { calcBusinessMetrics, projectBusinessCashFlows } from '@/lib/calculations/business';
 import { calcHybridMetrics, projectHybridCashFlows } from '@/lib/calculations/hybrid';
-import { exportDealPDF } from '@/lib/exportPdf';
+import { exportDealPDF, exportDealCSV } from '@/lib/exportPdf';
 
 export default function DealDetailPage() {
   const params = useParams();
@@ -271,6 +272,14 @@ export default function DealDetailPage() {
               >
                 <Download className="h-4 w-4" />
                 Export PDF
+              </button>
+              <button
+                onClick={() => exportDealCSV(currentDeal)}
+                className="flex items-center gap-1.5 rounded-lg border border-border px-4 py-2 text-sm font-medium text-foreground transition hover:bg-secondary"
+                title="Export CSV spreadsheet"
+              >
+                <FileSpreadsheet className="h-4 w-4" />
+                Export CSV
               </button>
               <button
                 onClick={() => setShowDeleteConfirm(true)}
