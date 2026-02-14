@@ -38,7 +38,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   // Read saved preference on mount
   useEffect(() => {
-    const saved = localStorage.getItem('nextvestiq-theme') as Theme | null;
+    const saved = localStorage.getItem('dealforge-theme') as Theme | null;
     if (saved && ['light', 'dark', 'system'].includes(saved)) {
       setThemeState(saved);
     }
@@ -66,7 +66,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   const setTheme = useCallback((t: Theme) => {
     setThemeState(t);
-    localStorage.setItem('nextvestiq-theme', t);
+    localStorage.setItem('dealforge-theme', t);
   }, []);
 
   const toggle = useCallback(() => {

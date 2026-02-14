@@ -116,7 +116,7 @@ export default function AuthPage() {
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-primary">
             <TrendingUp className="h-7 w-7 text-primary-foreground" />
           </div>
-          <h1 className="mt-4 text-2xl font-bold text-foreground">NextVestIQ</h1>
+          <h1 className="mt-4 text-2xl font-bold text-foreground">DealForge</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             {mode === 'login' && 'Sign in to your account'}
             {mode === 'signup' && 'Create a new account'}

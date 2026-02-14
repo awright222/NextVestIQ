@@ -1,6 +1,6 @@
-# NextVestIQ
+# DealForge
 
-Real estate and business investment analysis platform. Evaluate deals with institutional-grade metrics, investment scoring, sensitivity analysis, AI-powered deal analysis, detailed financial breakdowns, scenario modeling, and side-by-side comparison.
+Forge Better Investments. Institutional-grade underwriting and scenario modeling for real estate and business acquisitions. Built for Serious Investors.
 
 ## Tech Stack
 

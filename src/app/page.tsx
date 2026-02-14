@@ -1,5 +1,5 @@
 // ============================================
-// Landing Page — NextVestIQ
+// Landing Page — DealForge
 // ============================================
 
 import Link from 'next/link';
@@ -57,14 +57,13 @@ export default function HomePage() {
       {/* ─── Hero ────────────────────────────── */}
       <section className="mx-auto max-w-4xl px-4 py-12 text-center sm:px-6 sm:py-24">
         <h1 className="text-3xl font-extrabold leading-tight tracking-tight text-foreground sm:text-5xl">
-          Smarter Investment
+          Forge Better
           <br />
-          <span className="text-primary">Analysis in Seconds</span>
+          <span className="text-primary">Investments</span>
         </h1>
         <p className="mx-auto mt-6 max-w-2xl text-lg text-muted-foreground">
-          Evaluate real estate properties and business acquisitions with
-          institutional-grade metrics, scenario modeling, and side-by-side
-          deal comparison — all in one platform.
+          Institutional-grade underwriting and scenario modeling for real estate
+          and business acquisitions. Built for Serious Investors.
         </p>
         <div className="mt-10 flex items-center justify-center gap-4">
           <Link
@@ -104,7 +103,7 @@ export default function HomePage() {
 
       {/* ─── Footer ──────────────────────────── */}
       <footer className="border-t border-border py-8 text-center text-sm text-muted-foreground">
-        &copy; {new Date().getFullYear()} NextVestIQ. Built for investors, by
+        &copy; {new Date().getFullYear()} DealForge. Built for investors, by
         investors.
       </footer>
     </div>

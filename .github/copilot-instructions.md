@@ -1,7 +1,7 @@
-# NextVestIQ - Copilot Instructions
+# DealForge - Copilot Instructions
 
 ## Project Overview
-NextVestIQ is a real estate and business investment analysis platform.
+DealForge is a real estate and business investment analysis platform.
 
 ## Tech Stack
 - **Framework**: Next.js 14 (App Router) + TypeScript

@@ -18,9 +18,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "NextVestIQ — Investment Analysis Platform",
+  title: "DealForge — Forge Better Investments",
   description:
-    "Analyze real estate and business deals with automated metrics, scenario modeling, and side-by-side comparisons.",
+    "Institutional-grade underwriting and scenario modeling for real estate and business acquisitions. Built for Serious Investors.",
   icons: {
     icon: "/img/Favicon.io.png",
     apple: "/img/Favicon.io.png",
@@ -38,7 +38,7 @@ export default function RootLayout({
         {/* Prevent flash of wrong theme */}
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var t=localStorage.getItem('nextvestiq-theme');var d=t==='dark'||(t!=='light'&&matchMedia('(prefers-color-scheme:dark)').matches);document.documentElement.classList.toggle('dark',d)}catch(e){}})();`,
+            __html: `(function(){try{var t=localStorage.getItem('dealforge-theme');var d=t==='dark'||(t!=='light'&&matchMedia('(prefers-color-scheme:dark)').matches);document.documentElement.classList.toggle('dark',d)}catch(e){}})();`,
           }}
         />
       </head>

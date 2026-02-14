@@ -33,7 +33,7 @@ export function exportDealPDF(deal: Deal) {
 
   doc.setFontSize(20);
   doc.setFont('helvetica', 'bold');
-  doc.text('NextVestIQ — Deal Report', pageWidth / 2, y, { align: 'center' });
+  doc.text('DealForge — Deal Report', pageWidth / 2, y, { align: 'center' });
   y += 10;
 
   doc.setFontSize(14);
@@ -237,7 +237,7 @@ export function exportDealPDF(deal: Deal) {
     doc.setFontSize(8);
     doc.setTextColor(150);
     doc.text(
-      `NextVestIQ Report • Page ${i} of ${totalPages}`,
+      `DealForge Report • Page ${i} of ${totalPages}`,
       pageWidth / 2,
       doc.internal.pageSize.getHeight() - 10,
       { align: 'center' }

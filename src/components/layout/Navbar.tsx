@@ -53,8 +53,8 @@ export default function Navbar() {
       <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-3">
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2">
-          <Image src="/img/Logo.png" alt="NextVestIQ" width={878} height={742} className="h-8 w-auto object-contain" unoptimized />
-          <span className="text-lg font-bold text-foreground">NextVestIQ</span>
+          <Image src="/img/Logo.png" alt="DealForge" width={878} height={742} className="h-8 w-auto object-contain" unoptimized />
+          <span className="text-lg font-bold text-foreground">DealForge</span>
         </Link>
 
         {/* Right side */}

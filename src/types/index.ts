@@ -1,5 +1,5 @@
 // ============================================
-// NextVestIQ — Core Type Definitions
+// DealForge — Core Type Definitions
 // ============================================
 
 /** Determines whether a deal is a real estate property, business acquisition, or hybrid */
