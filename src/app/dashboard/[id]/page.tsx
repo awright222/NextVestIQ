@@ -53,6 +53,7 @@ export default function DealDetailPage() {
   const dealId = params.id as string;
 
   const deal = useAppSelector((s) => s.deals.items.find((d) => d.id === dealId));
+  const isLoading = useAppSelector((s) => s.deals.loading);
   const modal = useAppSelector((s) => s.ui.modal);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const { startTour } = useTour();
@@ -154,7 +155,18 @@ export default function DealDetailPage() {
     return [base, ...scenarios];
   }, [deal, isRE, isHybrid]);
 
-  // ─── Early return if deal not found ─────────────────────
+  // ─── Early return while loading or if deal not found ──
+
+  if (isLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-3">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+          <p className="text-sm text-muted-foreground">Loading deal...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!deal) {
     return (
