@@ -6,7 +6,7 @@
 
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import {
   PieChart,
   Pie,
@@ -97,6 +97,15 @@ export default function ExpenseBreakdownChart({ dealType, data }: Props) {
     [chartData]
   );
 
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 480px)');
+    setIsMobile(mq.matches);
+    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, []);
+
   if (chartData.length === 0) {
     return (
       <div className="rounded-xl border border-border bg-card p-6">
@@ -121,11 +130,11 @@ export default function ExpenseBreakdownChart({ dealType, data }: Props) {
             data={chartData}
             cx="50%"
             cy="50%"
-            innerRadius={60}
-            outerRadius={100}
+            innerRadius={isMobile ? 40 : 60}
+            outerRadius={isMobile ? 70 : 100}
             paddingAngle={2}
             dataKey="value"
-            label={({ name, percent }: { name?: string; percent?: number }) =>
+            label={isMobile ? false : ({ name, percent }: { name?: string; percent?: number }) =>
               `${name ?? ''} ${((percent ?? 0) * 100).toFixed(0)}%`
             }
             labelLine={false}

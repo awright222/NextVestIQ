@@ -180,7 +180,7 @@ export default function AlertCriteriaPanel() {
               {conditions.map((cond, idx) => (
                 <div
                   key={idx}
-                  className="flex items-center gap-2 rounded-lg border border-border bg-background p-2"
+                  className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-background p-2"
                 >
                   <select
                     value={cond.metric}

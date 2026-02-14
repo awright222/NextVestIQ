@@ -113,15 +113,16 @@ export default function ComparisonTable({ deals }: ComparisonTableProps) {
         </h2>
       </div>
 
+      <p className="mb-1 px-5 text-xs text-muted-foreground sm:hidden">← Scroll to compare →</p>
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-border bg-secondary/50">
-              <th className="px-4 py-3 text-left font-medium text-muted-foreground">
+              <th className="px-2 py-3 text-left font-medium text-muted-foreground sm:px-4">
                 Metric
               </th>
               {sortedDeals.map((deal) => (
-                <th key={deal.id} className="px-4 py-3 text-right">
+                <th key={deal.id} className="px-2 py-3 text-right sm:px-4">
                   <div className="flex items-center justify-end gap-2">
                     <span className="font-medium text-card-foreground">
                       {deal.name}
@@ -144,7 +145,7 @@ export default function ComparisonTable({ deals }: ComparisonTableProps) {
                 key={row.key}
                 className="border-b border-border last:border-0 hover:bg-secondary/30"
               >
-                <td className="px-4 py-3">
+                <td className="px-2 py-3 sm:px-4">
                   <button
                     onClick={() => handleSort(row.key)}
                     className="flex items-center gap-1 font-medium text-muted-foreground hover:text-foreground"
@@ -158,7 +159,7 @@ export default function ComparisonTable({ deals }: ComparisonTableProps) {
                   return (
                     <td
                       key={deal.id}
-                      className="px-4 py-3 text-right font-semibold text-card-foreground"
+                      className="px-2 py-3 text-right font-semibold text-card-foreground sm:px-4"
                     >
                       {row.format(value)}
                     </td>

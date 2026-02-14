@@ -4,7 +4,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Plus,
   BarChart3,
@@ -19,9 +19,11 @@ import {
   Loader2,
   ArrowUpDown,
   Bell,
+  PieChart,
 } from 'lucide-react';
 import { useAppSelector, useAppDispatch } from '@/hooks';
 import { useToast } from '@/components/ui/Toast';
+import { useTour, DASHBOARD_TOUR, ReplayTourButton } from '@/components/providers/TourProvider';
 import { setDashboardTab, openModal, closeModal, setSidebarOpen } from '@/store/uiSlice';
 import { toggleComparison, toggleFavorite, addDeal, updateDeal, removeDeal } from '@/store/dealsSlice';
 import DealCard from '@/components/dashboard/DealCard';
@@ -29,11 +31,13 @@ import ComparisonTable from '@/components/dashboard/ComparisonTable';
 import FinancingSidebar from '@/components/dashboard/FinancingSidebar';
 import DealForm from '@/components/dashboard/DealForm';
 import AlertCriteriaPanel from '@/components/dashboard/AlertCriteriaPanel';
+import PortfolioPanel from '@/components/dashboard/PortfolioPanel';
 import Modal from '@/components/ui/Modal';
 import type { Deal } from '@/types';
 
 const tabs = [
   { key: 'all' as const, label: 'All Deals', icon: LayoutGrid },
+  { key: 'portfolio' as const, label: 'Portfolio', icon: PieChart },
   { key: 'real-estate' as const, label: 'Real Estate', icon: Building2 },
   { key: 'business' as const, label: 'Business', icon: Briefcase },
   { key: 'hybrid' as const, label: 'Hybrid', icon: Store },
@@ -54,6 +58,15 @@ export default function DashboardPage() {
   const [deletingDeal, setDeletingDeal] = useState<Deal | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'name' | 'price'>('newest');
+  const { startTour } = useTour();
+
+  // Auto-trigger dashboard tour for first-time users
+  useEffect(() => {
+    if (!isLoading && deals.length === 0) {
+      const timer = setTimeout(() => startTour(DASHBOARD_TOUR), 600);
+      return () => clearTimeout(timer);
+    }
+  }, [isLoading, deals.length, startTour]);
 
   // The deal being edited (if any)
   const editingDeal = modal.dealId
@@ -83,6 +96,7 @@ export default function DashboardPage() {
   // Filter deals by active tab and search query
   const filteredDeals = deals
     .filter((deal) => {
+      if (activeTab === 'portfolio') return true;
       if (activeTab === 'favorites') return deal.isFavorite;
       if (activeTab === 'all') return true;
       return deal.dealType === activeTab;
@@ -125,11 +139,12 @@ export default function DashboardPage() {
       {/* ─── Main Content ─────────────────────── */}
       <div className="flex-1">
         {/* Header */}
-        <header className="border-b border-border bg-card px-6 py-4">
-          <div className="flex items-center justify-between">
+        <header className="border-b border-border bg-card px-4 py-4 sm:px-6">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <h2 className="text-lg font-bold text-foreground">My Deals</h2>
             <div className="flex flex-wrap items-center gap-2 sm:gap-3">
               <button
+                data-tour="alerts-btn"
                 onClick={() => dispatch(openModal({ type: 'alert-criteria' }))}
                 className="flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm transition hover:bg-secondary"
               >
@@ -142,6 +157,7 @@ export default function DashboardPage() {
                 )}
               </button>
               <button
+                data-tour="rates-btn"
                 onClick={() => dispatch(setSidebarOpen(!sidebarOpen))}
                 className="flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm transition hover:bg-secondary"
               >
@@ -149,26 +165,29 @@ export default function DashboardPage() {
                 Rates
               </button>
               <button
+                data-tour="new-deal"
                 onClick={() => dispatch(openModal({ type: 'deal-form' }))}
                 className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition hover:opacity-90"
               >
                 <Plus className="h-4 w-4" />
                 New Deal
               </button>
+              <ReplayTourButton tour={DASHBOARD_TOUR} />
             </div>
           </div>
         </header>
 
-        <div className="p-6">
+        <div className="p-4 sm:p-6">
           {/* Tabs + Search + Sort */}
           <div className="mb-6 space-y-4">
             {/* Row 1: Tabs + View controls */}
-            <div className="flex items-center justify-between">
-              <div className="flex gap-1 overflow-x-auto rounded-lg bg-secondary p-1 scrollbar-hide">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div data-tour="tabs" className="flex gap-1 overflow-x-auto rounded-lg bg-secondary p-1 scrollbar-hide">
                 {tabs.map((tab) => (
                   <button
                     key={tab.key}
                     onClick={() => dispatch(setDashboardTab(tab.key))}
+                    {...(tab.key === 'portfolio' ? { 'data-tour': 'portfolio-tab' } : {})}
                     className={`flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition ${
                       activeTab === tab.key
                         ? 'bg-card text-foreground shadow-sm'
@@ -246,6 +265,16 @@ export default function DashboardPage() {
               <Loader2 className="mb-3 h-8 w-8 animate-spin text-primary" />
               <p className="text-sm text-muted-foreground">Loading your deals...</p>
             </div>
+          ) : activeTab === 'portfolio' ? (
+            deals.length > 0 ? (
+              <PortfolioPanel deals={deals} />
+            ) : (
+              <div className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-border py-20 text-center">
+                <PieChart className="mb-4 h-12 w-12 text-muted-foreground" />
+                <h3 className="text-lg font-semibold text-foreground">No deals yet</h3>
+                <p className="mt-1 text-sm text-muted-foreground">Create your first deal to see portfolio metrics.</p>
+              </div>
+            )
           ) : filteredDeals.length === 0 ? (
             searchQuery ? (
               <div className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-border py-20 text-center">
@@ -326,7 +355,12 @@ export default function DashboardPage() {
       </div>
 
       {/* ─── Financing Sidebar ────────────────── */}
-      {sidebarOpen && <FinancingSidebar />}
+      {sidebarOpen && (
+        <>
+          <div className="fixed inset-0 z-30 bg-black/40 sm:hidden" onClick={() => dispatch(setSidebarOpen(false))} />
+          <FinancingSidebar />
+        </>
+      )}
 
       {/* ─── Deal Form Modal ──────────────────── */}
       <Modal

@@ -6,7 +6,7 @@
 
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import {
   ArrowLeft,
@@ -37,6 +37,7 @@ import { calcRealEstateMetrics, projectCashFlows } from '@/lib/calculations/real
 import { calcBusinessMetrics, projectBusinessCashFlows } from '@/lib/calculations/business';
 import { calcHybridMetrics, projectHybridCashFlows } from '@/lib/calculations/hybrid';
 import { exportDealPDF, exportDealCSV } from '@/lib/exportPdf';
+import { useTour, DEAL_DETAIL_TOUR, ReplayTourButton } from '@/components/providers/TourProvider';
 
 export default function DealDetailPage() {
   const params = useParams();
@@ -47,6 +48,15 @@ export default function DealDetailPage() {
   const deal = useAppSelector((s) => s.deals.items.find((d) => d.id === dealId));
   const modal = useAppSelector((s) => s.ui.modal);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const { startTour } = useTour();
+
+  // Auto-trigger deal detail tour on first visit
+  useEffect(() => {
+    if (deal) {
+      const timer = setTimeout(() => startTour(DEAL_DETAIL_TOUR), 800);
+      return () => clearTimeout(timer);
+    }
+  }, [deal?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const isRE = deal?.dealType === 'real-estate';
   const isHybrid = deal?.dealType === 'hybrid';
@@ -245,7 +255,7 @@ export default function DealDetailPage() {
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <button
                 onClick={() => dispatch(toggleFavorite(currentDeal.id))}
                 className="rounded-lg border border-border p-2 transition hover:bg-secondary"
@@ -256,22 +266,21 @@ export default function DealDetailPage() {
                   }`}
                 />
               </button>
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
               <button
                 onClick={() => dispatch(openModal({ type: 'deal-form', dealId: currentDeal.id }))}
                 className="flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition hover:opacity-90"
               >
                 <Pencil className="h-4 w-4" />
-                Edit Deal
+                <span className="hidden sm:inline">Edit Deal</span>
               </button>
               <button
+                data-tour="export-pdf"
                 onClick={() => exportDealPDF(currentDeal)}
                 className="flex items-center gap-1.5 rounded-lg border border-border px-4 py-2 text-sm font-medium text-foreground transition hover:bg-secondary"
                 title="Export PDF report"
               >
                 <Download className="h-4 w-4" />
-                Export PDF
+                <span className="hidden sm:inline">Export PDF</span>
               </button>
               <button
                 onClick={() => exportDealCSV(currentDeal)}
@@ -279,7 +288,7 @@ export default function DealDetailPage() {
                 title="Export CSV spreadsheet"
               >
                 <FileSpreadsheet className="h-4 w-4" />
-                Export CSV
+                <span className="hidden sm:inline">Export CSV</span>
               </button>
               <button
                 onClick={() => setShowDeleteConfirm(true)}
@@ -288,6 +297,7 @@ export default function DealDetailPage() {
               >
                 <Trash2 className="h-4 w-4" />
               </button>
+              <ReplayTourButton tour={DEAL_DETAIL_TOUR} />
             </div>
           </div>
         </div>
@@ -295,7 +305,9 @@ export default function DealDetailPage() {
 
       <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 sm:py-6">
         {/* ─── Metrics ─────────────────────────────── */}
-        <MetricsPanel dealType={currentDeal.dealType} data={currentDeal.data} />
+        <div data-tour="metrics-grid">
+          <MetricsPanel dealType={currentDeal.dealType} data={currentDeal.data} />
+        </div>
 
         {/* ─── Charts ──────────────────────────────── */}
         <div className={`mt-6 grid gap-6 ${scenarioChartData.length > 1 ? 'lg:grid-cols-2' : ''}`}>
@@ -314,17 +326,17 @@ export default function DealDetailPage() {
         </div>
 
         {/* ─── Sensitivity Analysis ───────────────── */}
-        <div className="mt-6">
+        <div className="mt-6" data-tour="sensitivity">
           <SensitivityGrid deal={currentDeal} />
         </div>
 
         {/* ─── Deal Analysis ──────────────────────── */}
-        <div className="mt-6">
+        <div className="mt-6" data-tour="analysis">
           <DealAnalysisPanel deal={currentDeal} />
         </div>
 
         {/* ─── Scenario Builder ────────────────────── */}
-        <div className="mt-8">
+        <div className="mt-8" data-tour="scenarios">
           <ScenarioPanel
             deal={currentDeal}
             onSaveScenario={handleSaveScenario}

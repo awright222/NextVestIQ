@@ -52,7 +52,7 @@ export default function Modal({
         className={`w-full ${maxWidth} rounded-xl border border-border bg-card shadow-2xl`}
       >
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-border px-6 py-4">
+        <div className="flex items-center justify-between border-b border-border px-4 py-3 sm:px-6 sm:py-4">
           <h2 className="text-lg font-semibold text-card-foreground">{title}</h2>
           <button
             onClick={onClose}
@@ -63,7 +63,7 @@ export default function Modal({
         </div>
 
         {/* Body */}
-        <div className="px-6 py-5">{children}</div>
+        <div className="px-4 py-4 sm:px-6 sm:py-5">{children}</div>
       </div>
     </div>
   );

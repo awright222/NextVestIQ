@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import StoreProvider from "@/components/providers/StoreProvider";
 import { AuthProvider } from "@/components/providers/AuthProvider";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
+import TourProvider from "@/components/providers/TourProvider";
 import { ToastProvider } from "@/components/ui/Toast";
 import Navbar from "@/components/layout/Navbar";
 import "./globals.css";
@@ -49,8 +50,10 @@ export default function RootLayout({
           <StoreProvider>
             <AuthProvider>
               <ToastProvider>
-                <Navbar />
-                {children}
+                <TourProvider>
+                  <Navbar />
+                  {children}
+                </TourProvider>
               </ToastProvider>
             </AuthProvider>
           </StoreProvider>

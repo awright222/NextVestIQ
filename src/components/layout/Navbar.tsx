@@ -50,11 +50,11 @@ export default function Navbar() {
 
   return (
     <nav className="border-b border-border bg-card">
-      <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-3">
+      <div className="mx-auto flex max-w-7xl items-center justify-between px-3 py-3 sm:px-6">
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2">
           <Image src="/img/Logo.png" alt="DealForge" width={878} height={742} className="h-8 w-auto object-contain logo-adaptive" unoptimized />
-          <span className="text-lg font-bold text-foreground">DealForge</span>
+          <span className="hidden text-lg font-bold text-foreground sm:inline">DealForge</span>
         </Link>
 
         {/* Right side */}

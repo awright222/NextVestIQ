@@ -43,6 +43,10 @@ NEXT_PUBLIC_FIREBASE_APP_ID=...
 
 # OpenAI (optional — enables AI-enhanced deal analysis)
 OPENAI_API_KEY=sk-...
+
+# FRED API (optional — live lending rates from Federal Reserve)
+# Free key: https://fred.stlouisfed.org/docs/api/api_key.html
+FRED_API_KEY=...
 ```
 
 ## Project Structure
@@ -172,6 +176,26 @@ Optional drill-down schedules that auto-calculate parent totals — keeps the fo
 - Cash flow projection (10-year area chart)
 - Expense breakdown donut chart
 - PDF deal reports with metrics, projections, and notes
+
+### Live Market Data
+- **Interest rates** from FRED (Federal Reserve Economic Data) — updated weekly
+- Benchmarks: 30-Year Fixed, 15-Year Fixed, Prime Rate, 10-Year Treasury
+- Derived rates: SBA 7(a) (Prime + 2.75%), SBA 504 (10-Yr Treasury + 2.4%), Conventional, FHA, Hard Money
+- 12-hour server-side cache with automatic fallback if FRED is unreachable
+- Underlying benchmark panel in Financing Sidebar
+- Optional `FRED_API_KEY` for higher rate limits (public DEMO_KEY works for low traffic)
+
+### Portfolio View
+- Aggregate KPIs across all deals (total value, equity, cash flow, weighted returns)
+- Allocation bar by deal type
+- Deal ranking table sorted by investment score
+- Click-through to individual deal detail
+
+### Guided Onboarding
+- Interactive tooltip tour for new users on dashboard and deal detail pages
+- SVG mask cutout highlights, keyboard navigation, progress dots
+- Auto-triggers for first-time users, replay button for returning users
+- Separate tours for dashboard (5 steps) and deal detail (6 steps)
 
 ### Auth & Persistence
 - Firebase Auth (email/password + Google)

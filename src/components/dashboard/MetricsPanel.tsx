@@ -190,7 +190,7 @@ export default function MetricsPanel({ dealType, data, baseMetrics }: MetricsPan
           <BarChart3 className="h-4 w-4 text-primary" />
           Key Metrics
         </h3>
-        <ScoreRing score={score} />
+        <div data-tour="score-ring"><ScoreRing score={score} /></div>
       </div>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
         <Metric icon={<DollarSign className="h-3.5 w-3.5" />} label="SDE" value={fmt(m.sde)}>

@@ -65,6 +65,7 @@ export default function SensitivityGrid({ deal }: Props) {
         </div>
       </div>
 
+      <p className="mb-1 text-xs text-muted-foreground sm:hidden">← Scroll to view all metrics →</p>
       <div className="overflow-x-auto">
         <table className="w-full text-xs">
           <thead>

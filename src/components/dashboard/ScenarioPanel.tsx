@@ -300,7 +300,7 @@ export default function ScenarioPanel({
 
       {/* ─── Save Scenario ──────────────────────── */}
       {hasOverrides && (
-        <div className="flex items-end gap-3 rounded-lg border border-dashed border-primary/30 bg-primary/5 p-4">
+        <div className="flex flex-col gap-3 rounded-lg border border-dashed border-primary/30 bg-primary/5 p-4 sm:flex-row sm:items-end">
           <FormField
             label="Scenario Name"
             value={scenarioName}

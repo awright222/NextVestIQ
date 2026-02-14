@@ -33,6 +33,10 @@ const pct = (n: number) => `${n.toFixed(2)}%`;
 const dateStr = () =>
   new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
 
+/** Strip emoji and other non-Latin-1 symbols that jsPDF's Helvetica can't render */
+const stripEmoji = (text: string) =>
+  text.replace(/[\u{1F000}-\u{1FFFF}\u{2600}-\u{27BF}\u{FE00}-\u{FE0F}\u{200D}\u{20E3}\u{E0020}-\u{E007F}\u{2B50}\u{2B55}\u{231A}-\u{23FA}\u{2934}-\u{2935}\u{25AA}-\u{25FE}\u{2602}-\u{2B55}\u{3030}\u{303D}\u{3297}\u{3299}\u{FE0F}\u{200B}]/gu, '').replace(/\s{2,}/g, ' ').trim();
+
 // ─── Color Palette ───────────────────────────────────
 
 const BLUE = [30, 64, 175] as const;
@@ -235,7 +239,7 @@ function renderExecutiveSummary(doc: jsPDF, deal: Deal, score: InvestmentScore, 
   // Verdict narrative
   doc.setFontSize(10);
   doc.setFont('helvetica', 'normal');
-  const verdictLines = doc.splitTextToSize(analysis.verdictSummary, pageWidth - 28);
+  const verdictLines = doc.splitTextToSize(stripEmoji(analysis.verdictSummary), pageWidth - 28);
   doc.text(verdictLines, 14, y);
   y += verdictLines.length * 4.5 + 6;
 
@@ -376,10 +380,10 @@ function renderRiskFlags(doc: jsPDF, analysis: DealAnalysis, y: number): number 
   doc.text('Risk Flags', 14, y);
   y += 6;
 
-  const flags = flagSection.content.split('\n').map((f) => f.replace(/^•\s*/, '').trim()).filter(Boolean);
+  const flags = flagSection.content.split('\n').map((f) => stripEmoji(f.replace(/^•\s*/, '').trim())).filter(Boolean);
   if (flags.length === 0) return y;
 
-  const flagRows = flags.map((f) => ['⚠', f]);
+  const flagRows = flags.map((f) => ['!', f]);
 
   autoTable(doc, {
     startY: y,
@@ -431,7 +435,7 @@ function renderAnalysisNarrative(doc: jsPDF, analysis: DealAnalysis): number {
     doc.setFontSize(11);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(...DARK);
-    doc.text(`${section.emoji} ${section.title}`, 14, y);
+    doc.text(section.title, 14, y);
     y += 5;
 
     doc.setFontSize(9);
@@ -439,7 +443,7 @@ function renderAnalysisNarrative(doc: jsPDF, analysis: DealAnalysis): number {
     doc.setTextColor(0);
 
     // Clean up markdown-style bold
-    const cleanContent = section.content.replace(/\*\*/g, '');
+    const cleanContent = stripEmoji(section.content.replace(/\*\*/g, ''));
     const lines = doc.splitTextToSize(cleanContent, pageWidth - 28);
 
     const lineHeight = 3.8;
