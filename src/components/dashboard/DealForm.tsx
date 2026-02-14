@@ -565,6 +565,7 @@ export default function DealForm({ existingDeal, onSave, onCancel }: DealFormPro
                   value={reData.closingCosts || ''}
                   onChange={(e) => updateRE('closingCosts', num(e))}
                   placeholder="10,000"
+                  tooltip="One-time fees at purchase: title insurance, attorney fees, inspections, appraisal, lender fees, etc."
                 />
                 <FormField
                   label="Rehab / Renovation"
@@ -573,6 +574,7 @@ export default function DealForm({ existingDeal, onSave, onCancel }: DealFormPro
                   value={reData.rehabCosts || ''}
                   onChange={(e) => updateRE('rehabCosts', num(e))}
                   placeholder="0"
+                  tooltip="Estimated cost of repairs or improvements needed before the property is rent-ready."
                 />
               </div>
             )}
@@ -591,6 +593,7 @@ export default function DealForm({ existingDeal, onSave, onCancel }: DealFormPro
                   onChange={(e) => { updateRE('grossRentalIncome', num(e)); setErrors((p) => ({ ...p, grossRentalIncome: '' })); }}
                   hint="Total annual rent"
                   error={fieldError('grossRentalIncome')}
+                  tooltip="Total annual rent collected if every unit is occupied at full market rate — before subtracting vacancy or expenses."
                 />
                 <FormField
                   label="Other Income"
@@ -619,8 +622,8 @@ export default function DealForm({ existingDeal, onSave, onCancel }: DealFormPro
               <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
                 <FormField label="Property Tax" prefix="$" type="number" value={reData.propertyTax || ''} onChange={(e) => updateRE('propertyTax', num(e))} />
                 <FormField label="Insurance" prefix="$" type="number" value={reData.insurance || ''} onChange={(e) => updateRE('insurance', num(e))} />
-                <FormField label="Maintenance" prefix="$" type="number" value={reData.maintenance || ''} onChange={(e) => updateRE('maintenance', num(e))} />
-                <FormField label="Management Fee" suffix="%" type="number" value={reData.propertyManagement || ''} onChange={(e) => updateRE('propertyManagement', num(e))} hint="% of gross income" />
+                <FormField label="Maintenance" prefix="$" type="number" value={reData.maintenance || ''} onChange={(e) => updateRE('maintenance', num(e))} tooltip="Annual budget for repairs, upkeep, and maintenance. A common estimate is 1–2% of the property value per year." />
+                <FormField label="Management Fee" suffix="%" type="number" value={reData.propertyManagement || ''} onChange={(e) => updateRE('propertyManagement', num(e))} hint="% of gross income" tooltip="Percentage of gross rental income paid to a property manager. Enter 0 if self-managing. Typical range: 8–12%." />
                 <div>
                   <FormField label="Utilities" prefix="$" type="number" value={reData.utilities || ''} onChange={(e) => updateRE('utilities', num(e))} hint={breakdowns.utilities?.length ? 'Auto-calculated from breakdown' : undefined} />
                   <div className="mt-1">{breakdownBtn('utilities', 'Utilities ▸')}</div>
@@ -685,10 +688,10 @@ export default function DealForm({ existingDeal, onSave, onCancel }: DealFormPro
             {sections.income && (
               <div className="mt-3 space-y-3">
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                  <FormField label="Annual Revenue" prefix="$" type="number" value={bizData.annualRevenue || ''} onChange={(e) => { updateBiz('annualRevenue', num(e)); setErrors((p) => ({ ...p, annualRevenue: '' })); }} error={fieldError('annualRevenue')} />
-                  <FormField label="Cost of Goods" prefix="$" type="number" value={bizData.costOfGoods || ''} onChange={(e) => updateBiz('costOfGoods', num(e))} />
+                  <FormField label="Annual Revenue" prefix="$" type="number" value={bizData.annualRevenue || ''} onChange={(e) => { updateBiz('annualRevenue', num(e)); setErrors((p) => ({ ...p, annualRevenue: '' })); }} error={fieldError('annualRevenue')} tooltip="Total gross revenue (top-line sales) for the most recent 12 months — before subtracting any expenses, COGS, or owner compensation." />
+                  <FormField label="Cost of Goods" prefix="$" type="number" value={bizData.costOfGoods || ''} onChange={(e) => updateBiz('costOfGoods', num(e))} tooltip="Direct costs to produce or deliver the product/service: materials, inventory, direct labor, shipping. Does not include rent, admin, or owner salary." />
                   <div>
-                    <FormField label="Operating Expenses" prefix="$" type="number" value={bizData.operatingExpenses || ''} onChange={(e) => updateBiz('operatingExpenses', num(e))} hint={breakdowns.payroll?.employees.length ? 'Auto-calculated from payroll' : undefined} />
+                    <FormField label="Operating Expenses" prefix="$" type="number" value={bizData.operatingExpenses || ''} onChange={(e) => updateBiz('operatingExpenses', num(e))} hint={breakdowns.payroll?.employees.length ? 'Auto-calculated from payroll' : undefined} tooltip="All recurring costs to run the business: rent, payroll, insurance, marketing, supplies, etc. Exclude owner salary, depreciation, interest, and taxes — those are entered separately as add-backs." />
                     <div className="mt-1 flex gap-1.5">
                       {breakdownBtn('payroll', 'Payroll ▸')}
                       {breakdownBtn('leases', 'Leases ▸')}
@@ -704,18 +707,18 @@ export default function DealForm({ existingDeal, onSave, onCancel }: DealFormPro
             <SectionHeader title="SDE / EBITDA Add-Backs" isOpen={sections.expenses} onToggle={() => toggleSection('expenses')} />
             {sections.expenses && (
               <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
-                <FormField label="Owner Salary" prefix="$" type="number" value={bizData.ownerSalary || ''} onChange={(e) => updateBiz('ownerSalary', num(e))} hint="Added back for SDE" />
+                <FormField label="Owner Salary" prefix="$" type="number" value={bizData.ownerSalary || ''} onChange={(e) => updateBiz('ownerSalary', num(e))} hint="Added back for SDE" tooltip="The current owner's total annual compensation (salary + benefits). This is added back to calculate Seller's Discretionary Earnings (SDE), since you as the new owner replace this." />
                 <div>
                   <FormField label="Depreciation" prefix="$" type="number" value={bizData.depreciation || ''} onChange={(e) => updateBiz('depreciation', num(e))} hint={breakdowns.assets?.length ? 'Auto-calculated from assets' : undefined} />
                   <div className="mt-1">{breakdownBtn('assets', 'Assets ▸')}</div>
                 </div>
-                <FormField label="Amortization" prefix="$" type="number" value={bizData.amortization || ''} onChange={(e) => updateBiz('amortization', num(e))} />
+                <FormField label="Amortization" prefix="$" type="number" value={bizData.amortization || ''} onChange={(e) => updateBiz('amortization', num(e))} tooltip="Annual amortization of intangible assets (patents, trademarks, customer lists). Not the same as loan amortization — this is a non-cash accounting expense added back for EBITDA." />
                 <div>
-                  <FormField label="Interest" prefix="$" type="number" value={bizData.interest || ''} onChange={(e) => updateBiz('interest', num(e))} hint={breakdowns.interestItems?.length ? 'Auto-calculated from debt schedule' : undefined} />
+                  <FormField label="Interest" prefix="$" type="number" value={bizData.interest || ''} onChange={(e) => updateBiz('interest', num(e))} hint={breakdowns.interestItems?.length ? 'Auto-calculated from debt schedule' : undefined} tooltip="Annual interest expense on the seller's existing debt. Added back for EBITDA because your financing will be different. Not your future loan interest — that's calculated in the Financing section." />
                   <div className="mt-1">{breakdownBtn('interest', 'Debt Schedule ▸')}</div>
                 </div>
                 <FormField label="Taxes" prefix="$" type="number" value={bizData.taxes || ''} onChange={(e) => updateBiz('taxes', num(e))} />
-                <FormField label="Other Add-Backs" prefix="$" type="number" value={bizData.otherAddBacks || ''} onChange={(e) => updateBiz('otherAddBacks', num(e))} hint="One-time / discretionary" />
+                <FormField label="Other Add-Backs" prefix="$" type="number" value={bizData.otherAddBacks || ''} onChange={(e) => updateBiz('otherAddBacks', num(e))} hint="One-time / discretionary" tooltip="Other non-recurring or discretionary expenses the current owner runs through the business: personal vehicle, family cell plans, one-time legal fees, etc." />
               </div>
             )}
           </div>
@@ -813,10 +816,10 @@ export default function DealForm({ existingDeal, onSave, onCancel }: DealFormPro
           <div>
             <SectionHeader title="Business Revenue & Expenses (Annual)" isOpen={true} onToggle={() => {}} />
             <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
-              <FormField label="Annual Revenue" prefix="$" type="number" value={hybridData.annualRevenue || ''} onChange={(e) => updateHybrid('annualRevenue', num(e))} />
-              <FormField label="Cost of Goods" prefix="$" type="number" value={hybridData.costOfGoods || ''} onChange={(e) => updateHybrid('costOfGoods', num(e))} />
+              <FormField label="Annual Revenue" prefix="$" type="number" value={hybridData.annualRevenue || ''} onChange={(e) => updateHybrid('annualRevenue', num(e))} tooltip="Total gross revenue (top-line sales) from the business operations — before any expenses. Does not include rental income from the property." />
+              <FormField label="Cost of Goods" prefix="$" type="number" value={hybridData.costOfGoods || ''} onChange={(e) => updateHybrid('costOfGoods', num(e))} tooltip="Direct costs to produce or deliver the product/service: materials, inventory, direct labor, shipping." />
               <div>
-                <FormField label="Operating Expenses" prefix="$" type="number" value={hybridData.businessOperatingExpenses || ''} onChange={(e) => updateHybrid('businessOperatingExpenses', num(e))} hint={breakdowns.payroll?.employees.length ? 'Auto-calculated from payroll' : undefined} />
+                <FormField label="Operating Expenses" prefix="$" type="number" value={hybridData.businessOperatingExpenses || ''} onChange={(e) => updateHybrid('businessOperatingExpenses', num(e))} hint={breakdowns.payroll?.employees.length ? 'Auto-calculated from payroll' : undefined} tooltip="All recurring business costs: payroll, supplies, marketing, etc. Exclude property expenses (those go in the Property Expenses section), owner salary, depreciation, interest, and taxes." />
                 <div className="mt-1 flex gap-1.5">
                   {breakdownBtn('payroll', 'Payroll ▸')}
                   {breakdownBtn('leases', 'Leases ▸')}
@@ -829,14 +832,14 @@ export default function DealForm({ existingDeal, onSave, onCancel }: DealFormPro
           <div>
             <SectionHeader title="SDE / EBITDA Add-Backs" isOpen={true} onToggle={() => {}} />
             <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
-              <FormField label="Owner Salary" prefix="$" type="number" value={hybridData.ownerSalary || ''} onChange={(e) => updateHybrid('ownerSalary', num(e))} hint="Added back for SDE" />
+              <FormField label="Owner Salary" prefix="$" type="number" value={hybridData.ownerSalary || ''} onChange={(e) => updateHybrid('ownerSalary', num(e))} hint="Added back for SDE" tooltip="The current owner's total annual compensation. Added back to calculate SDE since you as the new owner replace this." />
               <div>
                 <FormField label="Depreciation" prefix="$" type="number" value={hybridData.depreciation || ''} onChange={(e) => updateHybrid('depreciation', num(e))} hint={breakdowns.assets?.length ? 'Auto-calculated from assets' : undefined} />
                 <div className="mt-1">{breakdownBtn('assets', 'Assets ▸')}</div>
               </div>
-              <FormField label="Amortization" prefix="$" type="number" value={hybridData.amortization || ''} onChange={(e) => updateHybrid('amortization', num(e))} />
+              <FormField label="Amortization" prefix="$" type="number" value={hybridData.amortization || ''} onChange={(e) => updateHybrid('amortization', num(e))} tooltip="Annual amortization of intangible assets. This is a non-cash accounting expense added back for EBITDA." />
               <div>
-                <FormField label="Interest" prefix="$" type="number" value={hybridData.interest || ''} onChange={(e) => updateHybrid('interest', num(e))} hint={breakdowns.interestItems?.length ? 'Auto-calculated from debt schedule' : undefined} />
+                <FormField label="Interest" prefix="$" type="number" value={hybridData.interest || ''} onChange={(e) => updateHybrid('interest', num(e))} hint={breakdowns.interestItems?.length ? 'Auto-calculated from debt schedule' : undefined} tooltip="The seller's current annual interest expense. Added back for EBITDA because your financing will differ." />
                 <div className="mt-1">{breakdownBtn('interest', 'Debt Schedule ▸')}</div>
               </div>
               <FormField label="Taxes" prefix="$" type="number" value={hybridData.taxes || ''} onChange={(e) => updateHybrid('taxes', num(e))} />
@@ -908,12 +911,14 @@ export default function DealForm({ existingDeal, onSave, onCancel }: DealFormPro
                 type="number"
                 value={financing.loanTermYears || ''}
                 onChange={(e) => updateFinancing('loanTermYears', num(e))}
+                tooltip="How long until the loan matures (comes due). May differ from amortization — e.g. a 10-year term with 25-year amortization means a balloon payment at year 10."
               />
               <FormField
                 label="Amortization (years)"
                 type="number"
                 value={financing.amortizationYears || ''}
                 onChange={(e) => updateFinancing('amortizationYears', num(e))}
+                tooltip="The schedule used to calculate monthly payments. Longer amortization = lower monthly payment. If longer than the loan term, a balloon payment will be due at maturity."
               />
             </div>
           </div>

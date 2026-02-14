@@ -4,7 +4,8 @@
 
 'use client';
 
-import { InputHTMLAttributes } from 'react';
+import { InputHTMLAttributes, useState, useRef, useEffect } from 'react';
+import { Info } from 'lucide-react';
 
 interface FormFieldProps extends InputHTMLAttributes<HTMLInputElement> {
   label: string;
@@ -15,6 +16,42 @@ interface FormFieldProps extends InputHTMLAttributes<HTMLInputElement> {
   /** Helper text below the input */
   hint?: string;
   error?: string;
+  /** ⓘ tooltip — click to see more detail about what the field expects */
+  tooltip?: string;
+}
+
+/** Small info-button + popover for field-level help */
+function InfoTip({ text }: { text: string }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    function close(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener('mousedown', close);
+    return () => document.removeEventListener('mousedown', close);
+  }, [open]);
+
+  return (
+    <div ref={ref} className="relative inline-flex">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="ml-1 inline-flex items-center text-muted-foreground transition hover:text-primary focus:outline-none"
+        aria-label="More info"
+      >
+        <Info className="h-3.5 w-3.5" />
+      </button>
+      {open && (
+        <div className="absolute left-1/2 top-full z-50 mt-1.5 w-56 -translate-x-1/2 rounded-lg border border-border bg-card p-2.5 text-xs leading-relaxed text-foreground shadow-lg">
+          <div className="absolute -top-1.5 left-1/2 h-3 w-3 -translate-x-1/2 rotate-45 border-l border-t border-border bg-card" />
+          {text}
+        </div>
+      )}
+    </div>
+  );
 }
 
 export default function FormField({
@@ -23,6 +60,7 @@ export default function FormField({
   suffix,
   hint,
   error,
+  tooltip,
   className,
   id,
   ...inputProps
@@ -33,9 +71,10 @@ export default function FormField({
     <div className={className}>
       <label
         htmlFor={fieldId}
-        className="mb-1 block text-sm font-medium text-foreground"
+        className="mb-1 flex items-center text-sm font-medium text-foreground"
       >
         {label}
+        {tooltip && <InfoTip text={tooltip} />}
       </label>
       <div className="relative">
         {prefix && (
