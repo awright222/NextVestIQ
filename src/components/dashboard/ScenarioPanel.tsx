@@ -16,11 +16,14 @@ import type {
   Scenario,
   RealEstateDeal,
   BusinessDeal,
+  HybridDeal,
   RealEstateMetrics,
   BusinessMetrics,
+  HybridMetrics,
 } from '@/types';
 import { calcRealEstateMetrics } from '@/lib/calculations/real-estate';
 import { calcBusinessMetrics } from '@/lib/calculations/business';
+import { calcHybridMetrics } from '@/lib/calculations/hybrid';
 
 interface ScenarioPanelProps {
   deal: Deal;
@@ -39,7 +42,7 @@ interface SliderConfig {
   prefix?: string;
   suffix?: string;
   /** Path to the value in the deal data object */
-  getValue: (data: RealEstateDeal | BusinessDeal) => number;
+  getValue: (data: RealEstateDeal | BusinessDeal | HybridDeal) => number;
 }
 
 const RE_SLIDERS: SliderConfig[] = [
@@ -64,6 +67,20 @@ const BIZ_SLIDERS: SliderConfig[] = [
   { key: 'annualExpenseGrowth', label: 'Expense Growth', min: -5, max: 15, step: 0.5, suffix: '%', getValue: (d) => (d as BusinessDeal).annualExpenseGrowth },
 ];
 
+const HYBRID_SLIDERS: SliderConfig[] = [
+  { key: 'purchasePrice', label: 'Total Purchase Price', min: 0, max: 5_000_000, step: 10_000, prefix: '$', getValue: (d) => (d as HybridDeal).purchasePrice },
+  { key: 'propertyValue', label: 'Property Value', min: 0, max: 5_000_000, step: 10_000, prefix: '$', getValue: (d) => (d as HybridDeal).propertyValue },
+  { key: 'businessValue', label: 'Business Value', min: 0, max: 3_000_000, step: 10_000, prefix: '$', getValue: (d) => (d as HybridDeal).businessValue },
+  { key: 'annualRevenue', label: 'Business Revenue', min: 0, max: 5_000_000, step: 10_000, prefix: '$', getValue: (d) => (d as HybridDeal).annualRevenue },
+  { key: 'grossRentalIncome', label: 'Rental Income', min: 0, max: 500_000, step: 1_000, prefix: '$', getValue: (d) => (d as HybridDeal).grossRentalIncome },
+  { key: 'costOfGoods', label: 'Cost of Goods', min: 0, max: 3_000_000, step: 5_000, prefix: '$', getValue: (d) => (d as HybridDeal).costOfGoods },
+  { key: 'businessOperatingExpenses', label: 'Business Op. Expenses', min: 0, max: 2_000_000, step: 5_000, prefix: '$', getValue: (d) => (d as HybridDeal).businessOperatingExpenses },
+  { key: 'propertyTax', label: 'Property Tax', min: 0, max: 50_000, step: 500, prefix: '$', getValue: (d) => (d as HybridDeal).propertyTax },
+  { key: 'insurance', label: 'Insurance', min: 0, max: 20_000, step: 250, prefix: '$', getValue: (d) => (d as HybridDeal).insurance },
+  { key: 'annualRevenueGrowth', label: 'Revenue Growth', min: -10, max: 30, step: 0.5, suffix: '%', getValue: (d) => (d as HybridDeal).annualRevenueGrowth },
+  { key: 'annualAppreciation', label: 'Appreciation', min: -5, max: 15, step: 0.25, suffix: '%', getValue: (d) => (d as HybridDeal).annualAppreciation },
+];
+
 // Financing sliders (shared)
 const FINANCING_SLIDERS: SliderConfig[] = [
   { key: 'financing.downPayment', label: 'Down Payment', min: 0, max: 100, step: 0.5, suffix: '%', getValue: (d) => d.financing.downPayment },
@@ -79,7 +96,8 @@ export default function ScenarioPanel({
   onDeleteScenario,
 }: ScenarioPanelProps) {
   const isRE = deal.dealType === 'real-estate';
-  const sliders = [...(isRE ? RE_SLIDERS : BIZ_SLIDERS), ...FINANCING_SLIDERS];
+  const isHybrid = deal.dealType === 'hybrid';
+  const sliders = [...(isRE ? RE_SLIDERS : isHybrid ? HYBRID_SLIDERS : BIZ_SLIDERS), ...FINANCING_SLIDERS];
 
   // Overrides state — keys map to deal data field paths
   const [overrides, setOverrides] = useState<Record<string, number>>({});
@@ -90,8 +108,10 @@ export default function ScenarioPanel({
   const baseMetrics = useMemo(() => {
     return isRE
       ? calcRealEstateMetrics(deal.data as RealEstateDeal)
+      : isHybrid
+      ? calcHybridMetrics(deal.data as HybridDeal)
       : calcBusinessMetrics(deal.data as BusinessDeal);
-  }, [deal.data, isRE]);
+  }, [deal.data, isRE, isHybrid]);
 
   // Apply overrides to get the "what-if" deal data
   const scenarioData = useMemo(() => {
@@ -107,6 +127,8 @@ export default function ScenarioPanel({
         if (fKey === 'downPayment') {
           const price = isRE
             ? (overrides['purchasePrice'] ?? (deal.data as RealEstateDeal).purchasePrice)
+            : isHybrid
+            ? (overrides['purchasePrice'] ?? (deal.data as HybridDeal).purchasePrice)
             : (overrides['askingPrice'] ?? (deal.data as BusinessDeal).askingPrice);
           financing.loanAmount = price * (1 - value / 100);
         }
@@ -122,8 +144,8 @@ export default function ScenarioPanel({
     }
 
     base['financing'] = financing;
-    return base as unknown as RealEstateDeal | BusinessDeal;
-  }, [deal.data, overrides, isRE]);
+    return base as unknown as RealEstateDeal | BusinessDeal | HybridDeal;
+  }, [deal.data, overrides, isRE, isHybrid]);
 
   // Check if any overrides are active
   const hasOverrides = Object.keys(overrides).length > 0;

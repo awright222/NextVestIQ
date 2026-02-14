@@ -6,9 +6,10 @@
 
 import { useState, useMemo } from 'react';
 import { ArrowUpDown, X } from 'lucide-react';
-import type { Deal, RealEstateDeal, BusinessDeal } from '@/types';
+import type { Deal, RealEstateDeal, BusinessDeal, HybridDeal } from '@/types';
 import { calcRealEstateMetrics } from '@/lib/calculations/real-estate';
 import { calcBusinessMetrics } from '@/lib/calculations/business';
+import { calcHybridMetrics } from '@/lib/calculations/hybrid';
 import { useAppDispatch } from '@/hooks';
 import { toggleComparison } from '@/store/dealsSlice';
 
@@ -46,11 +47,22 @@ type MetricKey = (typeof metricRows)[number]['key'];
 /** Extract a comparable numeric value for a deal */
 function getMetricValue(deal: Deal, key: MetricKey): number {
   const isRE = deal.dealType === 'real-estate';
+  const isHybrid = deal.dealType === 'hybrid';
 
   if (isRE) {
     const m = calcRealEstateMetrics(deal.data as RealEstateDeal);
     switch (key) {
       case 'price': return (deal.data as RealEstateDeal).purchasePrice;
+      case 'cashFlow': return m.annualCashFlow;
+      case 'roi': return m.roi;
+      case 'capRateOrSde': return m.capRate;
+      case 'totalCashInvested': return m.totalCashInvested;
+      case 'debtService': return m.monthlyMortgage;
+    }
+  } else if (isHybrid) {
+    const m = calcHybridMetrics(deal.data as HybridDeal);
+    switch (key) {
+      case 'price': return (deal.data as HybridDeal).purchasePrice;
       case 'cashFlow': return m.annualCashFlow;
       case 'roi': return m.roi;
       case 'capRateOrSde': return m.capRate;

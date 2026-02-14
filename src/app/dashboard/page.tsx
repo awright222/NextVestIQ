@@ -11,12 +11,14 @@ import {
   GitCompareArrows,
   Building2,
   Briefcase,
+  Store,
   Star,
   LayoutGrid,
   List,
   Search,
   Loader2,
   ArrowUpDown,
+  Bell,
 } from 'lucide-react';
 import { useAppSelector, useAppDispatch } from '@/hooks';
 import { setDashboardTab, openModal, closeModal, setSidebarOpen } from '@/store/uiSlice';
@@ -25,6 +27,7 @@ import DealCard from '@/components/dashboard/DealCard';
 import ComparisonTable from '@/components/dashboard/ComparisonTable';
 import FinancingSidebar from '@/components/dashboard/FinancingSidebar';
 import DealForm from '@/components/dashboard/DealForm';
+import AlertCriteriaPanel from '@/components/dashboard/AlertCriteriaPanel';
 import Modal from '@/components/ui/Modal';
 import type { Deal } from '@/types';
 
@@ -32,6 +35,7 @@ const tabs = [
   { key: 'all' as const, label: 'All Deals', icon: LayoutGrid },
   { key: 'real-estate' as const, label: 'Real Estate', icon: Building2 },
   { key: 'business' as const, label: 'Business', icon: Briefcase },
+  { key: 'hybrid' as const, label: 'Hybrid', icon: Store },
   { key: 'favorites' as const, label: 'Favorites', icon: Star },
 ];
 
@@ -40,6 +44,7 @@ export default function DashboardPage() {
   const deals = useAppSelector((s) => s.deals.items);
   const isLoading = useAppSelector((s) => s.deals.loading);
   const comparisonIds = useAppSelector((s) => s.deals.comparisonIds);
+  const criteria = useAppSelector((s) => s.criteria.items);
   const activeTab = useAppSelector((s) => s.ui.dashboardTab);
   const sidebarOpen = useAppSelector((s) => s.ui.sidebarOpen);
   const modal = useAppSelector((s) => s.ui.modal);
@@ -94,9 +99,13 @@ export default function DashboardPage() {
         case 'price': {
           const priceA = a.dealType === 'real-estate'
             ? (a.data as import('@/types').RealEstateDeal).purchasePrice
+            : a.dealType === 'hybrid'
+            ? (a.data as import('@/types').HybridDeal).purchasePrice
             : (a.data as import('@/types').BusinessDeal).askingPrice;
           const priceB = b.dealType === 'real-estate'
             ? (b.data as import('@/types').RealEstateDeal).purchasePrice
+            : b.dealType === 'hybrid'
+            ? (b.data as import('@/types').HybridDeal).purchasePrice
             : (b.data as import('@/types').BusinessDeal).askingPrice;
           return priceB - priceA;
         }
@@ -115,6 +124,18 @@ export default function DashboardPage() {
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-bold text-foreground">My Deals</h2>
             <div className="flex items-center gap-3">
+              <button
+                onClick={() => dispatch(openModal({ type: 'alert-criteria' }))}
+                className="flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm transition hover:bg-secondary"
+              >
+                <Bell className="h-4 w-4" />
+                Alerts
+                {criteria.filter((c) => c.isActive).length > 0 && (
+                  <span className="ml-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
+                    {criteria.filter((c) => c.isActive).length}
+                  </span>
+                )}
+              </button>
               <button
                 onClick={() => dispatch(setSidebarOpen(!sidebarOpen))}
                 className="flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm transition hover:bg-secondary"
@@ -254,6 +275,7 @@ export default function DashboardPage() {
                   key={deal.id}
                   deal={deal}
                   isComparing={comparisonIds.includes(deal.id)}
+                  criteria={criteria}
                   onToggleCompare={() => dispatch(toggleComparison(deal.id))}
                   onToggleFavorite={() => dispatch(toggleFavorite(deal.id))}
                   onEdit={() =>
@@ -316,6 +338,15 @@ export default function DashboardPage() {
             </button>
           </div>
         </div>
+      </Modal>
+
+      {/* ─── Alert Criteria Modal ─────────────── */}
+      <Modal
+        title="Investment Alerts"
+        isOpen={modal.type === 'alert-criteria'}
+        onClose={() => dispatch(closeModal())}
+      >
+        <AlertCriteriaPanel />
       </Modal>
     </div>
   );

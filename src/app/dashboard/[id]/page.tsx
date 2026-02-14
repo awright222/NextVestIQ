@@ -12,6 +12,7 @@ import {
   ArrowLeft,
   Building2,
   Briefcase,
+  Store,
   Star,
   Pencil,
   Trash2,
@@ -26,9 +27,10 @@ import CashFlowChart from '@/components/charts/CashFlowChart';
 import ScenarioComparisonChart from '@/components/charts/ScenarioComparisonChart';
 import DealForm from '@/components/dashboard/DealForm';
 import Modal from '@/components/ui/Modal';
-import type { Deal, Scenario, RealEstateDeal, BusinessDeal } from '@/types';
+import type { Deal, Scenario, RealEstateDeal, BusinessDeal, HybridDeal } from '@/types';
 import { calcRealEstateMetrics, projectCashFlows } from '@/lib/calculations/real-estate';
 import { calcBusinessMetrics, projectBusinessCashFlows } from '@/lib/calculations/business';
+import { calcHybridMetrics, projectHybridCashFlows } from '@/lib/calculations/hybrid';
 
 export default function DealDetailPage() {
   const params = useParams();
@@ -41,6 +43,7 @@ export default function DealDetailPage() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const isRE = deal?.dealType === 'real-estate';
+  const isHybrid = deal?.dealType === 'hybrid';
 
   // ─── Cash flow projections for chart ────────────────────
 
@@ -49,8 +52,11 @@ export default function DealDetailPage() {
     if (isRE) {
       return projectCashFlows(deal.data as RealEstateDeal, 10);
     }
+    if (isHybrid) {
+      return projectHybridCashFlows(deal.data as HybridDeal, 10);
+    }
     return projectBusinessCashFlows(deal.data as BusinessDeal, 10);
-  }, [deal, isRE]);
+  }, [deal, isRE, isHybrid]);
 
   // ─── Scenario comparison chart data ─────────────────────
 
@@ -58,23 +64,31 @@ export default function DealDetailPage() {
     if (!deal) return [];
     const baseMetrics = isRE
       ? calcRealEstateMetrics(deal.data as RealEstateDeal)
+      : isHybrid
+      ? calcHybridMetrics(deal.data as HybridDeal)
       : calcBusinessMetrics(deal.data as BusinessDeal);
 
     const base = {
       name: 'Base Case',
       cashFlow: isRE
         ? (baseMetrics as ReturnType<typeof calcRealEstateMetrics>).annualCashFlow
+        : isHybrid
+        ? (baseMetrics as ReturnType<typeof calcHybridMetrics>).annualCashFlow
         : (baseMetrics as ReturnType<typeof calcBusinessMetrics>).annualCashFlow,
       roi: isRE
         ? (baseMetrics as ReturnType<typeof calcRealEstateMetrics>).roi
+        : isHybrid
+        ? (baseMetrics as ReturnType<typeof calcHybridMetrics>).roi
         : (baseMetrics as ReturnType<typeof calcBusinessMetrics>).roi,
       capRateOrSde: isRE
         ? (baseMetrics as ReturnType<typeof calcRealEstateMetrics>).capRate
+        : isHybrid
+        ? (baseMetrics as ReturnType<typeof calcHybridMetrics>).capRate
         : (baseMetrics as ReturnType<typeof calcBusinessMetrics>).sde,
     };
 
     const scenarios = deal.scenarios.map((s) => {
-      const overriddenData = { ...deal.data, ...s.overrides } as RealEstateDeal | BusinessDeal;
+      const overriddenData = { ...deal.data, ...s.overrides } as RealEstateDeal | BusinessDeal | HybridDeal;
 
       if (s.overrides && typeof s.overrides === 'object') {
         const ov = s.overrides as Record<string, unknown>;
@@ -90,24 +104,32 @@ export default function DealDetailPage() {
 
       const m = isRE
         ? calcRealEstateMetrics(overriddenData as RealEstateDeal)
+        : isHybrid
+        ? calcHybridMetrics(overriddenData as HybridDeal)
         : calcBusinessMetrics(overriddenData as BusinessDeal);
 
       return {
         name: s.name,
         cashFlow: isRE
           ? (m as ReturnType<typeof calcRealEstateMetrics>).annualCashFlow
+          : isHybrid
+          ? (m as ReturnType<typeof calcHybridMetrics>).annualCashFlow
           : (m as ReturnType<typeof calcBusinessMetrics>).annualCashFlow,
         roi: isRE
           ? (m as ReturnType<typeof calcRealEstateMetrics>).roi
+          : isHybrid
+          ? (m as ReturnType<typeof calcHybridMetrics>).roi
           : (m as ReturnType<typeof calcBusinessMetrics>).roi,
         capRateOrSde: isRE
           ? (m as ReturnType<typeof calcRealEstateMetrics>).capRate
+          : isHybrid
+          ? (m as ReturnType<typeof calcHybridMetrics>).capRate
           : (m as ReturnType<typeof calcBusinessMetrics>).sde,
       };
     });
 
     return [base, ...scenarios];
-  }, [deal, isRE]);
+  }, [deal, isRE, isHybrid]);
 
   // ─── Early return if deal not found ─────────────────────
 
@@ -168,6 +190,8 @@ export default function DealDetailPage() {
 
   const price = isRE
     ? (currentDeal.data as RealEstateDeal).purchasePrice
+    : isHybrid
+    ? (currentDeal.data as HybridDeal).purchasePrice
     : (currentDeal.data as BusinessDeal).askingPrice;
 
   // ─── Render ─────────────────────────────────────────────
@@ -191,11 +215,13 @@ export default function DealDetailPage() {
                     className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${
                       isRE
                         ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300'
+                        : isHybrid
+                        ? 'bg-teal-100 text-teal-700 dark:bg-teal-900 dark:text-teal-300'
                         : 'bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300'
                     }`}
                   >
-                    {isRE ? <Building2 className="h-3 w-3" /> : <Briefcase className="h-3 w-3" />}
-                    {isRE ? 'Real Estate' : 'Business'}
+                    {isRE ? <Building2 className="h-3 w-3" /> : isHybrid ? <Store className="h-3 w-3" /> : <Briefcase className="h-3 w-3" />}
+                    {isRE ? 'Real Estate' : isHybrid ? 'Hybrid' : 'Business'}
                   </span>
                   <h1 className="text-lg font-bold text-foreground">{currentDeal.name}</h1>
                 </div>
@@ -253,7 +279,7 @@ export default function DealDetailPage() {
           {scenarioChartData.length > 1 && (
             <ScenarioComparisonChart
               data={scenarioChartData}
-              thirdMetricLabel={isRE ? 'Cap Rate %' : 'SDE $'}
+              thirdMetricLabel={isRE ? 'Cap Rate %' : isHybrid ? 'Cap Rate %' : 'SDE $'}
             />
           )}
         </div>

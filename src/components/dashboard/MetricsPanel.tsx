@@ -13,15 +13,16 @@ import {
   Percent,
   BarChart3,
 } from 'lucide-react';
-import type { RealEstateDeal, BusinessDeal, RealEstateMetrics, BusinessMetrics } from '@/types';
+import type { RealEstateDeal, BusinessDeal, HybridDeal, RealEstateMetrics, BusinessMetrics, HybridMetrics } from '@/types';
 import { calcRealEstateMetrics } from '@/lib/calculations/real-estate';
 import { calcBusinessMetrics } from '@/lib/calculations/business';
+import { calcHybridMetrics } from '@/lib/calculations/hybrid';
 
 interface MetricsPanelProps {
-  dealType: 'real-estate' | 'business';
-  data: RealEstateDeal | BusinessDeal;
+  dealType: 'real-estate' | 'business' | 'hybrid';
+  data: RealEstateDeal | BusinessDeal | HybridDeal;
   /** Optional: base metrics to compare against (for scenario diff) */
-  baseMetrics?: RealEstateMetrics | BusinessMetrics;
+  baseMetrics?: RealEstateMetrics | BusinessMetrics | HybridMetrics;
 }
 
 function fmt(n: number): string {
@@ -104,6 +105,65 @@ export default function MetricsPanel({ dealType, data, baseMetrics }: MetricsPan
           <Metric icon={<DollarSign className="h-3.5 w-3.5" />} label="Cash Invested" value={fmt(m.totalCashInvested)} />
           <Metric icon={<DollarSign className="h-3.5 w-3.5" />} label="Effective Gross Income" value={fmt(m.effectiveGrossIncome)} />
           <Metric icon={<DollarSign className="h-3.5 w-3.5" />} label="Operating Expenses" value={fmt(m.operatingExpenses)} />
+        </div>
+      </div>
+    );
+  }
+
+  // Hybrid
+  if (dealType === 'hybrid') {
+    const m = calcHybridMetrics(data as HybridDeal);
+    const b = baseMetrics as HybridMetrics | undefined;
+
+    return (
+      <div className="rounded-xl border border-border bg-card p-5">
+        <h3 className="mb-4 flex items-center gap-2 text-sm font-semibold text-card-foreground">
+          <BarChart3 className="h-4 w-4 text-primary" />
+          Key Metrics
+        </h3>
+        {/* Property + Business sub-headers */}
+        <p className="mb-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Property</p>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 mb-4">
+          <Metric icon={<DollarSign className="h-3.5 w-3.5" />} label="Property NOI" value={fmt(m.propertyNoi)}>
+            <DiffBadge current={m.propertyNoi} base={b?.propertyNoi} />
+          </Metric>
+          <Metric icon={<Percent className="h-3.5 w-3.5" />} label="Cap Rate" value={pct(m.capRate)}>
+            <DiffBadge current={m.capRate} base={b?.capRate} />
+          </Metric>
+        </div>
+        <p className="mb-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Business</p>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 mb-4">
+          <Metric icon={<DollarSign className="h-3.5 w-3.5" />} label="EBITDA" value={fmt(m.ebitda)}>
+            <DiffBadge current={m.ebitda} base={b?.ebitda} />
+          </Metric>
+          <Metric icon={<DollarSign className="h-3.5 w-3.5" />} label="SDE" value={fmt(m.sde)}>
+            <DiffBadge current={m.sde} base={b?.sde} />
+          </Metric>
+          <Metric label="Revenue Multiple" value={`${ratio(m.revenueMultiple)}x`} />
+          <Metric label="SDE Multiple" value={`${ratio(m.sdeMultiple)}x`} />
+        </div>
+        <p className="mb-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Combined</p>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+          <Metric icon={<DollarSign className="h-3.5 w-3.5" />} label="Total NOI" value={fmt(m.totalNoi)}>
+            <DiffBadge current={m.totalNoi} base={b?.totalNoi} />
+          </Metric>
+          <Metric icon={<DollarSign className="h-3.5 w-3.5" />} label="Annual Cash Flow" value={fmt(m.annualCashFlow)}>
+            <DiffBadge current={m.annualCashFlow} base={b?.annualCashFlow} />
+          </Metric>
+          <Metric icon={<Percent className="h-3.5 w-3.5" />} label="Cash-on-Cash" value={pct(m.cashOnCashReturn)}>
+            <DiffBadge current={m.cashOnCashReturn} base={b?.cashOnCashReturn} />
+          </Metric>
+          <Metric icon={<Percent className="h-3.5 w-3.5" />} label="ROI (5yr)" value={pct(m.roi)}>
+            <DiffBadge current={m.roi} base={b?.roi} />
+          </Metric>
+          <Metric label="DSCR" value={ratio(m.dscr)}>
+            <DiffBadge current={m.dscr} base={b?.dscr} />
+          </Metric>
+          <Metric icon={<DollarSign className="h-3.5 w-3.5" />} label="Monthly Mortgage" value={fmt(m.monthlyMortgage)} />
+          <Metric icon={<DollarSign className="h-3.5 w-3.5" />} label="Cash Invested" value={fmt(m.totalCashInvested)} />
+          <Metric icon={<DollarSign className="h-3.5 w-3.5" />} label="Break-Even Revenue" value={fmt(m.breakEvenRevenue)}>
+            <DiffBadge current={m.breakEvenRevenue} base={b?.breakEvenRevenue} />
+          </Metric>
         </div>
       </div>
     );

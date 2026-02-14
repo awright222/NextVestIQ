@@ -8,7 +8,7 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import { Building2, Briefcase } from 'lucide-react';
+import { Building2, Briefcase, Store } from 'lucide-react';
 import { useAuth } from '@/components/providers/AuthProvider';
 import FormField from '@/components/ui/FormField';
 import SelectField from '@/components/ui/SelectField';
@@ -19,6 +19,7 @@ import type {
   LoanType,
   RealEstateDeal,
   BusinessDeal,
+  HybridDeal,
   FinancingTerms,
 } from '@/types';
 
@@ -88,6 +89,40 @@ function defaultBusiness(): BusinessDeal {
   };
 }
 
+function defaultHybrid(): HybridDeal {
+  return {
+    type: 'hybrid',
+    purchasePrice: 0,
+    propertyValue: 0,
+    businessValue: 0,
+    closingCosts: 0,
+    rehabCosts: 0,
+    grossRentalIncome: 0,
+    otherPropertyIncome: 0,
+    vacancyRate: 5,
+    propertyTax: 0,
+    insurance: 0,
+    maintenance: 0,
+    propertyManagement: 0,
+    utilities: 0,
+    otherPropertyExpenses: 0,
+    annualRevenue: 0,
+    costOfGoods: 0,
+    businessOperatingExpenses: 0,
+    ownerSalary: 0,
+    depreciation: 0,
+    amortization: 0,
+    interest: 0,
+    taxes: 0,
+    otherAddBacks: 0,
+    financing: { ...FINANCING_DEFAULTS['sba-7a'], loanAmount: 0 },
+    annualRevenueGrowth: 5,
+    annualRentGrowth: 3,
+    annualExpenseGrowth: 3,
+    annualAppreciation: 3,
+  };
+}
+
 // ─── Props ───────────────────────────────────────────────────
 
 interface DealFormProps {
@@ -119,6 +154,11 @@ export default function DealForm({ existingDeal, onSave, onCancel }: DealFormPro
       ? (existingDeal.data as BusinessDeal)
       : defaultBusiness()
   );
+  const [hybridData, setHybridData] = useState<HybridDeal>(
+    existingDeal?.dealType === 'hybrid'
+      ? (existingDeal.data as HybridDeal)
+      : defaultHybrid()
+  );
 
   // Section collapse state
   const [sections, setSections] = useState({
@@ -134,7 +174,8 @@ export default function DealForm({ existingDeal, onSave, onCancel }: DealFormPro
 
   // Currently active data based on deal type
   const isRE = dealType === 'real-estate';
-  const currentData = isRE ? reData : bizData;
+  const isHybrid = dealType === 'hybrid';
+  const currentData = isRE ? reData : isHybrid ? hybridData : bizData;
 
   // ─── Helpers for updating nested state ───────────────────
 
@@ -150,28 +191,38 @@ export default function DealForm({ existingDeal, onSave, onCancel }: DealFormPro
     []
   );
 
+  const updateHybrid = useCallback(
+    (field: keyof HybridDeal, value: number) =>
+      setHybridData((prev) => ({ ...prev, [field]: value })),
+    []
+  );
+
   const updateFinancing = useCallback(
     (field: keyof FinancingTerms, value: number | string) => {
       const update = (prev: FinancingTerms) => ({ ...prev, [field]: value });
       if (isRE) {
         setReData((prev) => ({ ...prev, financing: update(prev.financing) }));
+      } else if (isHybrid) {
+        setHybridData((prev) => ({ ...prev, financing: update(prev.financing) }));
       } else {
         setBizData((prev) => ({ ...prev, financing: update(prev.financing) }));
       }
     },
-    [isRE]
+    [isRE, isHybrid]
   );
 
   /** When loan type changes, auto-fill the financing defaults */
   function handleLoanTypeChange(lt: LoanType) {
     const defaults = FINANCING_DEFAULTS[lt];
-    const price = isRE ? reData.purchasePrice : bizData.askingPrice;
+    const price = isRE ? reData.purchasePrice : isHybrid ? hybridData.purchasePrice : bizData.askingPrice;
     const loanAmount = price * (1 - defaults.downPayment / 100);
 
     const newFinancing: FinancingTerms = { ...defaults, loanAmount };
 
     if (isRE) {
       setReData((prev) => ({ ...prev, financing: newFinancing }));
+    } else if (isHybrid) {
+      setHybridData((prev) => ({ ...prev, financing: newFinancing }));
     } else {
       setBizData((prev) => ({ ...prev, financing: newFinancing }));
     }
@@ -182,6 +233,8 @@ export default function DealForm({ existingDeal, onSave, onCancel }: DealFormPro
     const loanAmount = price * (1 - downPct / 100);
     if (isRE) {
       setReData((prev) => ({ ...prev, financing: { ...prev.financing, loanAmount } }));
+    } else if (isHybrid) {
+      setHybridData((prev) => ({ ...prev, financing: { ...prev.financing, loanAmount } }));
     } else {
       setBizData((prev) => ({ ...prev, financing: { ...prev.financing, loanAmount } }));
     }
@@ -203,9 +256,9 @@ export default function DealForm({ existingDeal, onSave, onCancel }: DealFormPro
     const deal: Deal = {
       id: existingDeal?.id ?? crypto.randomUUID(),
       userId: existingDeal?.userId ?? user?.uid ?? '',
-      name: name || (isRE ? 'Untitled Property' : 'Untitled Business'),
+      name: name || (isRE ? 'Untitled Property' : isHybrid ? 'Untitled Hybrid' : 'Untitled Business'),
       dealType,
-      data: isRE ? reData : bizData,
+      data: isRE ? reData : isHybrid ? hybridData : bizData,
       scenarios: existingDeal?.scenarios ?? [],
       notes,
       tags: tags
@@ -248,7 +301,7 @@ export default function DealForm({ existingDeal, onSave, onCancel }: DealFormPro
             type="button"
             onClick={() => setDealType('business')}
             className={`flex flex-1 items-center justify-center gap-2 rounded-lg border px-4 py-3 text-sm font-medium transition ${
-              !isRE
+              dealType === 'business'
                 ? 'border-primary bg-primary/10 text-primary'
                 : 'border-border text-muted-foreground hover:bg-secondary'
             }`}
@@ -256,13 +309,30 @@ export default function DealForm({ existingDeal, onSave, onCancel }: DealFormPro
             <Briefcase className="h-4 w-4" />
             Business
           </button>
+          <button
+            type="button"
+            onClick={() => setDealType('hybrid')}
+            className={`flex flex-1 items-center justify-center gap-2 rounded-lg border px-4 py-3 text-sm font-medium transition ${
+              isHybrid
+                ? 'border-primary bg-primary/10 text-primary'
+                : 'border-border text-muted-foreground hover:bg-secondary'
+            }`}
+          >
+            <Store className="h-4 w-4" />
+            Hybrid
+          </button>
         </div>
+        {isHybrid && (
+          <p className="mt-1.5 text-xs text-muted-foreground">
+            For deals where you buy both the property and the business (e.g. laundromat, car wash, restaurant).
+          </p>
+        )}
       </div>
 
       {/* ─── Deal Name ────────────────────────── */}
       <FormField
         label="Deal Name"
-        placeholder={isRE ? 'e.g. 123 Main St Duplex' : 'e.g. Joe\'s Auto Shop'}
+        placeholder={isRE ? 'e.g. 123 Main St Duplex' : isHybrid ? 'e.g. Main St Laundromat' : 'e.g. Joe\'s Auto Shop'}
         value={name}
         onChange={(e) => setName(e.target.value)}
       />
@@ -374,7 +444,7 @@ export default function DealForm({ existingDeal, onSave, onCancel }: DealFormPro
       {/* ═══════════════════════════════════════ */}
       {/* BUSINESS FIELDS                         */}
       {/* ═══════════════════════════════════════ */}
-      {!isRE && (
+      {dealType === 'business' && (
         <>
           {/* Purchase */}
           <div>
@@ -445,6 +515,115 @@ export default function DealForm({ existingDeal, onSave, onCancel }: DealFormPro
       )}
 
       {/* ═══════════════════════════════════════ */}
+      {/* HYBRID FIELDS                           */}
+      {/* ═══════════════════════════════════════ */}
+      {isHybrid && (
+        <>
+          {/* Purchase / Value Allocation */}
+          <div>
+            <SectionHeader title="Purchase & Value Allocation" isOpen={sections.purchase} onToggle={() => toggleSection('purchase')} />
+            {sections.purchase && (
+              <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
+                <FormField
+                  label="Total Purchase Price"
+                  prefix="$"
+                  type="number"
+                  value={hybridData.purchasePrice || ''}
+                  onChange={(e) => {
+                    const v = num(e);
+                    updateHybrid('purchasePrice', v);
+                    recalcLoanAmount(v, hybridData.financing.downPayment);
+                  }}
+                  placeholder="750,000"
+                />
+                <FormField
+                  label="Property Value"
+                  prefix="$"
+                  type="number"
+                  value={hybridData.propertyValue || ''}
+                  onChange={(e) => updateHybrid('propertyValue', num(e))}
+                  hint="Allocated to real estate"
+                />
+                <FormField
+                  label="Business Value"
+                  prefix="$"
+                  type="number"
+                  value={hybridData.businessValue || ''}
+                  onChange={(e) => updateHybrid('businessValue', num(e))}
+                  hint="Allocated to goodwill / business"
+                />
+                <FormField label="Closing Costs" prefix="$" type="number" value={hybridData.closingCosts || ''} onChange={(e) => updateHybrid('closingCosts', num(e))} />
+                <FormField label="Rehab / Renovation" prefix="$" type="number" value={hybridData.rehabCosts || ''} onChange={(e) => updateHybrid('rehabCosts', num(e))} />
+              </div>
+            )}
+          </div>
+
+          {/* Property Income */}
+          <div>
+            <SectionHeader title="Property Income (Annual)" isOpen={sections.income} onToggle={() => toggleSection('income')} />
+            {sections.income && (
+              <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
+                <FormField label="Gross Rental Income" prefix="$" type="number" value={hybridData.grossRentalIncome || ''} onChange={(e) => updateHybrid('grossRentalIncome', num(e))} hint="If part of building is separately rented" />
+                <FormField label="Other Property Income" prefix="$" type="number" value={hybridData.otherPropertyIncome || ''} onChange={(e) => updateHybrid('otherPropertyIncome', num(e))} hint="Parking, storage, etc." />
+                <FormField label="Vacancy Rate" suffix="%" type="number" value={hybridData.vacancyRate || ''} onChange={(e) => updateHybrid('vacancyRate', num(e))} hint="For rental portion" />
+              </div>
+            )}
+          </div>
+
+          {/* Property Expenses */}
+          <div>
+            <SectionHeader title="Property Expenses (Annual)" isOpen={sections.expenses} onToggle={() => toggleSection('expenses')} />
+            {sections.expenses && (
+              <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
+                <FormField label="Property Tax" prefix="$" type="number" value={hybridData.propertyTax || ''} onChange={(e) => updateHybrid('propertyTax', num(e))} />
+                <FormField label="Insurance" prefix="$" type="number" value={hybridData.insurance || ''} onChange={(e) => updateHybrid('insurance', num(e))} />
+                <FormField label="Maintenance" prefix="$" type="number" value={hybridData.maintenance || ''} onChange={(e) => updateHybrid('maintenance', num(e))} />
+                <FormField label="Management Fee" suffix="%" type="number" value={hybridData.propertyManagement || ''} onChange={(e) => updateHybrid('propertyManagement', num(e))} hint="% of property gross income" />
+                <FormField label="Utilities" prefix="$" type="number" value={hybridData.utilities || ''} onChange={(e) => updateHybrid('utilities', num(e))} />
+                <FormField label="Other Property Expenses" prefix="$" type="number" value={hybridData.otherPropertyExpenses || ''} onChange={(e) => updateHybrid('otherPropertyExpenses', num(e))} />
+              </div>
+            )}
+          </div>
+
+          {/* Business Revenue & Expenses */}
+          <div>
+            <SectionHeader title="Business Revenue & Expenses (Annual)" isOpen={true} onToggle={() => {}} />
+            <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
+              <FormField label="Annual Revenue" prefix="$" type="number" value={hybridData.annualRevenue || ''} onChange={(e) => updateHybrid('annualRevenue', num(e))} />
+              <FormField label="Cost of Goods" prefix="$" type="number" value={hybridData.costOfGoods || ''} onChange={(e) => updateHybrid('costOfGoods', num(e))} />
+              <FormField label="Operating Expenses" prefix="$" type="number" value={hybridData.businessOperatingExpenses || ''} onChange={(e) => updateHybrid('businessOperatingExpenses', num(e))} />
+            </div>
+          </div>
+
+          {/* SDE Add-Backs */}
+          <div>
+            <SectionHeader title="SDE / EBITDA Add-Backs" isOpen={true} onToggle={() => {}} />
+            <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
+              <FormField label="Owner Salary" prefix="$" type="number" value={hybridData.ownerSalary || ''} onChange={(e) => updateHybrid('ownerSalary', num(e))} hint="Added back for SDE" />
+              <FormField label="Depreciation" prefix="$" type="number" value={hybridData.depreciation || ''} onChange={(e) => updateHybrid('depreciation', num(e))} />
+              <FormField label="Amortization" prefix="$" type="number" value={hybridData.amortization || ''} onChange={(e) => updateHybrid('amortization', num(e))} />
+              <FormField label="Interest" prefix="$" type="number" value={hybridData.interest || ''} onChange={(e) => updateHybrid('interest', num(e))} />
+              <FormField label="Taxes" prefix="$" type="number" value={hybridData.taxes || ''} onChange={(e) => updateHybrid('taxes', num(e))} />
+              <FormField label="Other Add-Backs" prefix="$" type="number" value={hybridData.otherAddBacks || ''} onChange={(e) => updateHybrid('otherAddBacks', num(e))} />
+            </div>
+          </div>
+
+          {/* Hybrid Growth */}
+          <div>
+            <SectionHeader title="Growth Assumptions" isOpen={sections.growth} onToggle={() => toggleSection('growth')} />
+            {sections.growth && (
+              <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
+                <FormField label="Revenue Growth" suffix="%" type="number" step="0.1" value={hybridData.annualRevenueGrowth || ''} onChange={(e) => updateHybrid('annualRevenueGrowth', num(e))} />
+                <FormField label="Rent Growth" suffix="%" type="number" step="0.1" value={hybridData.annualRentGrowth || ''} onChange={(e) => updateHybrid('annualRentGrowth', num(e))} />
+                <FormField label="Expense Growth" suffix="%" type="number" step="0.1" value={hybridData.annualExpenseGrowth || ''} onChange={(e) => updateHybrid('annualExpenseGrowth', num(e))} />
+                <FormField label="Appreciation" suffix="%" type="number" step="0.1" value={hybridData.annualAppreciation || ''} onChange={(e) => updateHybrid('annualAppreciation', num(e))} />
+              </div>
+            )}
+          </div>
+        </>
+      )}
+
+      {/* ═══════════════════════════════════════ */}
       {/* FINANCING (shared)                      */}
       {/* ═══════════════════════════════════════ */}
       <div>
@@ -468,7 +647,7 @@ export default function DealForm({ existingDeal, onSave, onCancel }: DealFormPro
                 onChange={(e) => {
                   const dp = num(e);
                   updateFinancing('downPayment', dp);
-                  const price = isRE ? reData.purchasePrice : bizData.askingPrice;
+                  const price = isRE ? reData.purchasePrice : isHybrid ? hybridData.purchasePrice : bizData.askingPrice;
                   recalcLoanAmount(price, dp);
                 }}
               />

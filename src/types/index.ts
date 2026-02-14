@@ -2,8 +2,8 @@
 // NextVestIQ — Core Type Definitions
 // ============================================
 
-/** Determines whether a deal is a real estate property or a business acquisition */
-export type DealType = 'real-estate' | 'business';
+/** Determines whether a deal is a real estate property, business acquisition, or hybrid */
+export type DealType = 'real-estate' | 'business' | 'hybrid';
 
 /** Supported loan program types for auto-populating financing defaults */
 export type LoanType =
@@ -77,6 +77,54 @@ export interface BusinessDeal {
   annualExpenseGrowth: number;  // percentage
 }
 
+// ─── Hybrid Deal (Real Estate + Business) ────────────────────
+// For deals where you buy both the property AND the business
+// operating inside it (e.g. laundromat, car wash, restaurant).
+
+export interface HybridDeal {
+  type: 'hybrid';
+
+  // ── Purchase / Allocation ──────────────
+  purchasePrice: number;       // Total acquisition price
+  propertyValue: number;       // Portion allocated to real estate
+  businessValue: number;       // Portion allocated to business / goodwill
+  closingCosts: number;
+  rehabCosts: number;
+
+  // ── Property Income ────────────────────
+  grossRentalIncome: number;       // Rental income if part of building is separately rented
+  otherPropertyIncome: number;     // Parking, storage, etc.
+  vacancyRate: number;             // percentage for rental portion
+
+  // ── Property Expenses ──────────────────
+  propertyTax: number;
+  insurance: number;
+  maintenance: number;
+  propertyManagement: number;  // percentage of property gross income
+  utilities: number;
+  otherPropertyExpenses: number;
+
+  // ── Business Revenue & Expenses ────────
+  annualRevenue: number;       // Business revenue
+  costOfGoods: number;
+  businessOperatingExpenses: number;
+  ownerSalary: number;
+  depreciation: number;
+  amortization: number;
+  interest: number;
+  taxes: number;
+  otherAddBacks: number;
+
+  // ── Financing ──────────────────────────
+  financing: FinancingTerms;
+
+  // ── Growth Assumptions ─────────────────
+  annualRevenueGrowth: number;  // business revenue growth %
+  annualRentGrowth: number;     // rental income growth %
+  annualExpenseGrowth: number;  // all expenses growth %
+  annualAppreciation: number;   // property appreciation %
+}
+
 // ─── Shared Types ────────────────────────────────────────────
 
 export interface FinancingTerms {
@@ -94,7 +142,7 @@ export interface Deal {
   userId: string;
   name: string;
   dealType: DealType;
-  data: RealEstateDeal | BusinessDeal;
+  data: RealEstateDeal | BusinessDeal | HybridDeal;
   scenarios: Scenario[];
   notes: string;
   tags: string[];
@@ -107,7 +155,7 @@ export interface Deal {
 export interface Scenario {
   id: string;
   name: string;
-  overrides: Partial<RealEstateDeal> | Partial<BusinessDeal>;
+  overrides: Partial<RealEstateDeal> | Partial<BusinessDeal> | Partial<HybridDeal>;
   createdAt: string;
 }
 
@@ -139,6 +187,31 @@ export interface BusinessMetrics {
   sdeMultiple: number;
 }
 
+/** Metrics for hybrid deals — combines property and business analysis */
+export interface HybridMetrics {
+  // Property metrics
+  propertyNoi: number;
+  capRate: number;         // based on property value allocation
+
+  // Business metrics
+  ebitda: number;
+  sde: number;
+  revenueMultiple: number;
+  sdeMultiple: number;
+
+  // Combined metrics
+  totalNoi: number;        // property NOI + business net income
+  annualCashFlow: number;
+  cashOnCashReturn: number;
+  roi: number;
+  dscr: number;
+  monthlyMortgage: number;
+  totalCashInvested: number;
+  breakEvenRevenue: number;
+  effectiveGrossIncome: number;
+  totalOperatingExpenses: number;
+}
+
 // ─── Lending Rates ───────────────────────────────────────────
 
 export interface LendingRate {
@@ -157,9 +230,10 @@ export interface InvestmentCriteria {
   id: string;
   userId: string;
   name: string;
-  dealType: DealType;
+  dealType: DealType | 'any';
   conditions: CriteriaCondition[];
   isActive: boolean;
+  createdAt: string;
 }
 
 export interface CriteriaCondition {

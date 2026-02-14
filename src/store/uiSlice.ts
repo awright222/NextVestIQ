@@ -10,7 +10,7 @@ interface UIState {
   sidebarOpen: boolean;
 
   /** Which tab is active on the dashboard */
-  dashboardTab: 'all' | 'real-estate' | 'business' | 'favorites';
+  dashboardTab: 'all' | 'real-estate' | 'business' | 'hybrid' | 'favorites';
 
   /** Modal state */
   modal: {
